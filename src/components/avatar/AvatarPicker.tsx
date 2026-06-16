@@ -21,28 +21,20 @@ export function AvatarPicker({
           <button
             aria-label={`Escolher avatar ${profile.name}`}
             aria-pressed={selected}
-            className={`min-h-36 rounded-3xl border p-3 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 ${
+            className={`min-h-[8.5rem] rounded-3xl border p-3 text-left shadow-sm transition duration-200 active:scale-[0.98] ${
               selected
-                ? "border-[#35D07F] bg-[#0F1F2B] shadow-[#35D07F]/20"
-                : "border-white/10 bg-[#0B1722] hover:border-[#F5C451]/70 hover:bg-[#0F1F2B]"
+                ? "border-[#35D07F]/35 bg-[#35D07F]/[0.08]"
+                : "border-white/10 bg-[#101523]/88 hover:border-[#35D07F]/24"
             }`}
             key={avatarId}
             onClick={() => onSelect(avatarId)}
             type="button"
           >
-            <AvatarMark avatarId={avatarId} size="sm" />
-            <span
-              className={`mt-3 block text-xs font-black leading-4 ${
-                selected ? "text-[#F5F7FA]" : "text-[#D8E1E8]"
-              }`}
-            >
+            <AvatarMark avatarId={avatarId} label={profile.name} size="sm" />
+            <span className="mt-3 block text-xs font-black leading-4 text-[#F7F7FF]">
               {profile.name}
             </span>
-            <span
-              className={`mt-1 block text-[11px] font-semibold leading-4 ${
-                selected ? "text-[#35D07F]" : "text-[#9FB2BE]"
-              }`}
-            >
+            <span className="mt-1 block text-[11px] font-bold leading-4 text-[#A7A8C8]">
               {profile.title}
             </span>
           </button>

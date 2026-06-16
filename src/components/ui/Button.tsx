@@ -6,10 +6,10 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "border border-[#35D07F]/80 bg-gradient-to-r from-[#35D07F] to-[#6F5BFF] text-[#08121C] shadow-lg shadow-[#35D07F]/20 hover:brightness-110",
+    "border border-[#35D07F]/80 bg-[#35D07F] text-[#06110C] shadow-[0_10px_24px_rgba(53,208,127,0.18)] hover:bg-[#4BE093]",
   secondary:
-    "border border-white/10 bg-[#0F1F2B] text-[#F5F7FA] shadow-sm hover:border-[#F5C451]/70 hover:bg-white/5",
-  ghost: "text-[#9FB2BE] hover:bg-white/5 hover:text-[#F5F7FA]",
+    "border border-white/10 bg-white/[0.06] text-[#F7F7FF] hover:border-[#35D07F]/35 hover:bg-white/[0.09]",
+  ghost: "text-[#A7A8C8] hover:bg-white/[0.06] hover:text-[#F7F7FF]",
 };
 
 export function Button({
@@ -20,7 +20,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-11 items-center justify-center rounded-2xl px-4 py-2 text-sm font-black transition duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:translate-y-0 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-[#0F1F2B] disabled:text-[#60707A] disabled:shadow-none ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 py-2 text-sm font-extrabold transition duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-[#69708D] disabled:shadow-none ${variants[variant]} ${className}`}
       type={type}
       {...props}
     />

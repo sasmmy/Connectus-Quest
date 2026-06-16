@@ -1,27 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a12;
-  --foreground: #f0f0ff;
+  --dark-background: #060913;
+  --dark-surface: #101523;
+  --dark-surface-soft: #151a2b;
+  --celo-green: #35d07f;
+  --celo-green-strong: #20e68a;
+  --celo-gold: #fbcc5c;
+  --celo-blue: #22d3ee;
+  --impact-purple: #8b5cf6;
+  --impact-purple-strong: #a855f7;
+  --accent: #ec4899;
+  --background: var(--dark-background);
+  --surface: var(--dark-surface);
+  --surface-soft: var(--dark-surface-soft);
+  --primary: var(--celo-green);
+  --primary-strong: var(--celo-green-strong);
+  --secondary: var(--celo-blue);
+  --success: var(--celo-green);
+  --reward: var(--celo-gold);
+  --text: #f7f7ff;
+  --muted: #a7a8c8;
+  --border: rgba(53, 208, 127, 0.24);
+  --foreground: var(--text);
 }
 
 @theme inline {
+  --color-dark-background: var(--dark-background);
+  --color-dark-surface: var(--dark-surface);
+  --color-dark-surface-soft: var(--dark-surface-soft);
+  --color-celo-green: var(--celo-green);
+  --color-celo-green-strong: var(--celo-green-strong);
+  --color-celo-gold: var(--celo-gold);
+  --color-celo-blue: var(--celo-blue);
+  --color-impact-purple: var(--impact-purple);
+  --color-impact-purple-strong: var(--impact-purple-strong);
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-secondary: var(--secondary);
+  --color-success: var(--success);
+  --color-reward: var(--reward);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --color-border-soft: var(--border);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-body {
+html {
   background: var(--background);
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(53, 208, 127, 0.14), transparent 32%),
+    radial-gradient(circle at 86% 8%, rgba(34, 211, 238, 0.1), transparent 28%),
+    linear-gradient(180deg, var(--dark-background) 0%, #080c18 52%, var(--dark-background) 100%);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
+::selection {
+  background: rgba(53, 208, 127, 0.34);
+  color: var(--text);
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(53, 208, 127, 0.38);
+  outline-offset: 3px;
 }
 
 @keyframes slide-in-right {
@@ -47,10 +105,10 @@ a {
 @keyframes rank-flash {
   0%,
   100% {
-    box-shadow: 0 0 0 rgba(168, 85, 247, 0);
+    box-shadow: 0 0 0 rgba(34, 211, 238, 0);
   }
   45% {
-    box-shadow: 0 0 24px rgba(168, 85, 247, 0.38);
+    box-shadow: 0 0 28px rgba(34, 211, 238, 0.34);
   }
 }
 

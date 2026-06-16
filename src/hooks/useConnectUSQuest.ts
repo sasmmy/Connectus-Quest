@@ -185,11 +185,9 @@ export function useConnectUSQuest({
   const levelProgress = getLevelProgress(totalXp, user.level, user.nextLevelXp);
 
   function isQuestLocked(quest: Quest) {
-    return (
-      quest.difficulty === "hard" &&
-      !completedQuestIds.includes(quest.id) &&
-      completedQuestIds.length < 2
-    );
+    void quest;
+
+    return false;
   }
 
   function isBadgeUnlocked(badge: Badge) {
@@ -235,7 +233,7 @@ export function useConnectUSQuest({
     const nextQuestIds = [...completedQuestIds, questId];
     saveCompletedQuestIds(nextQuestIds);
     emitStorageChange();
-    setMessage(`Quest concluida: +${formatXp(quest.xp)} XP`);
+    setMessage(`Você ganhou +${formatXp(quest.xp)} XP`);
   }
 
   function updateProfile(nextProfile: Partial<ProfileState>) {
@@ -266,7 +264,7 @@ export function useConnectUSQuest({
       .forEach((key) => window.localStorage.removeItem(key));
 
     emitStorageChange();
-    setMessage("Progresso ConnectUS resetado");
+    setMessage("Progresso reiniciado");
   }
 
   return {

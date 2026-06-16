@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ConnectUS Quest",
   description:
-    "Mini app gamificado para jornadas de impacto social no ecossistema Celo.",
+    "Mini app gamificado para missões simples, progresso pessoal e impacto em comunidade.",
 };
 
 export default function RootLayout({

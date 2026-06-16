@@ -1,5 +1,5 @@
-import { ConnectUSQuestApp } from "@/components/connectus/ConnectUSQuestApp";
+import { redirect } from "next/navigation";
 
 export default function RewardsPage() {
-  return <ConnectUSQuestApp initialScreen="agent" />;
+  redirect("/profile");
 }
