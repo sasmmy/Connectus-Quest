@@ -19,10 +19,10 @@ export function RankingList({ entries, currentUser }: RankingListProps) {
 
         return (
           <article
-            className={`flex items-center gap-3 rounded-3xl border p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.18)] ${
+            className={`flex items-center gap-3 rounded-3xl border p-3.5 shadow-[0_14px_36px_rgba(0,0,0,0.22)] ${
               isCurrentUser
-                ? "border-[#35D07F]/42 bg-[#35D07F]/[0.08]"
-                : "border-white/10 bg-[#101523]/88"
+                ? "border-[#35D07F]/44 bg-[linear-gradient(145deg,rgba(53,208,127,0.14),rgba(16,21,35,0.94))]"
+                : "border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.92),rgba(16,21,35,0.88))]"
             }`}
             key={entry.id}
           >
@@ -30,8 +30,8 @@ export function RankingList({ entries, currentUser }: RankingListProps) {
               aria-label={`${index + 1} lugar`}
               className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-black ${
                 index === 0
-                  ? "bg-[#FBCC5C] text-[#151006]"
-                  : "bg-white/[0.07] text-[#A7A8C8]"
+                  ? "bg-[#FBCC5C] text-[#151006] shadow-[0_0_18px_rgba(251,204,92,0.22)]"
+                  : "border border-white/10 bg-white/[0.07] text-[#A7A8C8]"
               }`}
             >
               {index + 1}

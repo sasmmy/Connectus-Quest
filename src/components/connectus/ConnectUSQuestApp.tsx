@@ -250,7 +250,7 @@ export function ConnectUSQuestApp({
           </div>
         ) : null}
 
-        <main className="relative z-10 space-y-4 px-4 pb-[calc(5.8rem+env(safe-area-inset-bottom))] pt-2">
+        <main className="relative z-10 space-y-4 px-4 pb-[calc(6.6rem+env(safe-area-inset-bottom))] pt-2">
           {activeScreen === "home" ? (
             <HomeScreen
               completedQuestIds={completedQuestIds}
@@ -399,13 +399,15 @@ function HomeScreen({
 }) {
   return (
     <>
-      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.98),rgba(10,18,32,0.98))] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+        <div className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full bg-[#35D07F]/12 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-8 size-36 rounded-full bg-[#22D3EE]/10 blur-2xl" />
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-3xl font-black leading-9 text-white">
+            <h1 className="text-[2rem] font-black leading-9 text-white">
               Oi, {firstName} 👋
             </h1>
-            <p className="mt-2 max-w-[15rem] text-sm font-medium leading-5 text-[#A7A8C8]">
+            <p className="mt-2 max-w-[15rem] text-sm font-semibold leading-5 text-[#B9BCD6]">
               Você está evoluindo como {journeyTitle}.
             </p>
           </div>
@@ -413,10 +415,11 @@ function HomeScreen({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-[#35D07F]/20 bg-[#0F1A20] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <section className="relative overflow-hidden rounded-[2rem] border border-[#35D07F]/24 bg-[linear-gradient(145deg,rgba(53,208,127,0.16),rgba(16,21,35,0.98)_46%,rgba(34,211,238,0.10))] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+        <div className="pointer-events-none absolute right-5 top-5 size-20 rounded-full border border-[#35D07F]/14" />
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#BDF7D6]">
+            <p className="text-sm font-bold text-[#BDF7D6]">
               {journeyTitle}
             </p>
             <h2 className="mt-1 text-3xl font-black text-white">
@@ -426,14 +429,14 @@ function HomeScreen({
               {formatXp(xpInsideLevel)} / {formatXp(xpGoal)} XP
             </p>
           </div>
-          <div className="rounded-full bg-[#FBCC5C]/12 px-3 py-1.5 text-sm font-extrabold text-[#FFE7A3]">
+          <div className="rounded-full border border-[#FBCC5C]/22 bg-[#FBCC5C]/12 px-3 py-1.5 text-sm font-extrabold text-[#FFE7A3]">
             ⚡
           </div>
         </div>
         <div className="mt-4">
           <QuestProgress value={levelProgressPercent} />
         </div>
-        <p className="mt-3 text-xs font-medium text-[#A7A8C8]">
+        <p className="mt-3 text-xs font-semibold text-[#B9BCD6]">
           Faltam {formatXp(xpToNextLevel)} XP para o nível {nextLevel}.
         </p>
         <p className="mt-1 text-xs font-medium text-[#8F96B3]">
@@ -490,7 +493,8 @@ function DailyQuestCard({
   quest: Quest;
 }) {
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+    <section className="relative overflow-hidden rounded-[2rem] border border-[#FBCC5C]/20 bg-[linear-gradient(145deg,rgba(251,204,92,0.12),rgba(16,21,35,0.98)_42%,rgba(139,92,246,0.10))] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+      <div className="pointer-events-none absolute -right-10 -top-10 size-28 rounded-full bg-[#FBCC5C]/12 blur-2xl" />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[#35D07F]">Missão do dia</p>
@@ -705,7 +709,8 @@ function ProfileScreen({
 }) {
   return (
     <>
-      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 text-center shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.98),rgba(10,18,32,0.98))] p-5 text-center shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
+        <div className="pointer-events-none absolute -right-14 -top-14 size-32 rounded-full bg-[#8B5CF6]/14 blur-2xl" />
         <div className="flex justify-center">
           <AvatarMark avatarId={profile.avatarId} label={profile.name} size="lg" />
         </div>
@@ -735,12 +740,12 @@ function ProfileScreen({
         </div>
       </section>
 
-      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <section className="rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.96),rgba(16,21,35,0.90))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
         <SectionTitle
           subtitle={`Você está evoluindo como ${journeyTitle}.`}
           title="Minha Jornada"
         />
-        <div className="mt-4 rounded-3xl bg-white/[0.04] p-4">
+        <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.05] p-4">
           <p className="text-sm font-semibold leading-6 text-white">
             Faltam {nextMilestoneMissions} missões para alcançar o próximo
             marco.
@@ -826,7 +831,7 @@ function ProfileScreen({
         </div>
       </section>
 
-      <p className="rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-medium text-[#8F96B3]">
+      <p className="rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 text-center text-xs font-medium text-[#8F96B3]">
         Tecnologia Celo nos bastidores.
       </p>
 
@@ -874,7 +879,7 @@ function matchesQuestFilter(quest: Quest, filter: QuestFilter) {
 
 function PageIntro({ subtitle, title }: { subtitle: string; title: string }) {
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.2)]">
+    <section className="rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.96),rgba(16,21,35,0.90))] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
       <h1 className="text-3xl font-black text-white">{title}</h1>
       <p className="mt-2 text-sm font-medium leading-5 text-[#A7A8C8]">
         {subtitle}
