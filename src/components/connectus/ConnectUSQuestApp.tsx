@@ -1,8 +1,15 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { AvatarMark, getAvatarProfile } from "@/components/avatar/AvatarMark";
-import { AvatarPicker } from "@/components/avatar/AvatarPicker";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { AvatarMark } from "@/components/avatar/AvatarMark";
+import { CeloAccountCard, CeloLoginChip } from "@/components/celo/CeloAccountCard";
+import {
+  SecureImpactRecord,
+  SecureRecordsSummary,
+} from "@/components/celo/SecureImpactRecord";
+import { BottomNav, type BottomNavItem } from "@/components/layout/BottomNav";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { QuestCard } from "@/components/quest/QuestCard";
 import { QuestProgress } from "@/components/quest/QuestProgress";
 import { RewardBadge } from "@/components/quest/RewardBadge";
@@ -12,30 +19,107 @@ import { StatCard } from "@/components/ui/StatCard";
 import { mockBadges, mockQuests } from "@/data/mockQuests";
 import { mockRanking } from "@/data/mockRanking";
 import { mockUser } from "@/data/mockUser";
-import { formatXp } from "@/lib/formatters";
+import { useConnectUSIdentity } from "@/hooks/useConnectUSIdentity";
 import { useConnectUSQuest } from "@/hooks/useConnectUSQuest";
-import type { Quest } from "@/types/quest";
+import { formatXp } from "@/lib/formatters";
+import type { Quest, QuestCategory } from "@/types/quest";
+import type { RankingEntry } from "@/types/ranking";
 
-type ActiveScreen = "base" | "quests" | "hall" | "agent";
+type ActiveScreen = "home" | "quests" | "ranking" | "profile";
+type QuestFilter = "all" | "daily" | "social" | "learn";
 
 type ConnectUSQuestAppProps = {
   initialScreen?: ActiveScreen;
 };
 
-const navItems: Array<{
-  id: ActiveScreen;
-  label: string;
-  signal: string;
-}> = [
-  { id: "base", label: "Base", signal: "01" },
-  { id: "quests", label: "Quests", signal: "02" },
-  { id: "hall", label: "Hall", signal: "03" },
-  { id: "agent", label: "Agente", signal: "04" },
+const onboardingStorageKey = "onboarding_completed";
+const onboardingStorageEvent = "connectus-onboarding-change";
+
+function subscribeToOnboardingStorage(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(onboardingStorageEvent, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(onboardingStorageEvent, onStoreChange);
+  };
+}
+
+function getOnboardingSnapshot() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(onboardingStorageKey) === "true";
+}
+
+function getServerOnboardingSnapshot() {
+  return false;
+}
+
+const navItems: BottomNavItem[] = [
+  { icon: "home", id: "home", label: "Início" },
+  { icon: "quests", id: "quests", label: "Missões" },
+  { icon: "ranking", id: "ranking", label: "Comunidade" },
+  { icon: "profile", id: "profile", label: "Perfil" },
 ];
 
+const questFilters: Array<{ id: QuestFilter; label: string }> = [
+  { id: "all", label: "Todas" },
+  { id: "daily", label: "Diárias" },
+  { id: "social", label: "Sociais" },
+  { id: "learn", label: "Aprender" },
+];
+
+type ImpactStats = {
+  communityActions: number;
+  completedMissions: number;
+  sharedOpportunities: number;
+};
+
+function getJourneyTitle(level: number) {
+  if (level >= 6) {
+    return "Líder Comunitária";
+  }
+
+  if (level >= 5) {
+    return "Agente de Impacto";
+  }
+
+  if (level >= 4) {
+    return "Conectora";
+  }
+
+  return "Exploradora";
+}
+
+function getMissionsToNextMilestone(completedCount: number) {
+  const milestones = [1, 3, 5, 8, 12];
+  const nextMilestone = milestones.find((milestone) => milestone > completedCount);
+
+  return Math.max((nextMilestone ?? completedCount + 3) - completedCount, 1);
+}
+
+function getImpactStats(completedQuests: Quest[]): ImpactStats {
+  return {
+    communityActions: completedQuests.filter((quest) =>
+      ["community", "impact"].includes(quest.category),
+    ).length,
+    completedMissions: completedQuests.length,
+    sharedOpportunities: completedQuests.filter(
+      (quest) => quest.id === "share-opportunity",
+    ).length,
+  };
+}
+
 export function ConnectUSQuestApp({
-  initialScreen = "base",
+  initialScreen = "home",
 }: ConnectUSQuestAppProps) {
+  const router = useRouter();
   const questState = useConnectUSQuest({
     badges: mockBadges,
     quests: mockQuests,
@@ -45,6 +129,7 @@ export function ConnectUSQuestApp({
   const {
     badges,
     completedQuestIds,
+    completedQuests,
     completeQuest,
     currentRankingUser,
     isBadgeUnlocked,
@@ -54,572 +139,798 @@ export function ConnectUSQuestApp({
     profile,
     quests,
     ranking,
-    recommendedQuests,
     resetProgress,
     setMessage,
     storageReady,
     totalXp,
     unlockedBadges,
-    updateProfile,
     user,
   } = questState;
+  const identity = useConnectUSIdentity();
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const onboardingCompleted = useSyncExternalStore(
+    subscribeToOnboardingStorage,
+    getOnboardingSnapshot,
+    getServerOnboardingSnapshot,
+  );
 
   useEffect(() => {
     if (!message) {
       return;
     }
 
-    const timer = window.setTimeout(() => setMessage(""), 2400);
+    const timer = window.setTimeout(() => setMessage(""), 2200);
 
     return () => window.clearTimeout(timer);
   }, [message, setMessage]);
 
-  const profileData = getAvatarProfile(profile.avatarId);
+  const displayProfile = {
+    ...profile,
+    handle: identity.displayHandle,
+    name: identity.displayName,
+  };
+  const firstName = identity.displayName.split(" ")[0] || identity.displayName;
   const completedCount = completedQuestIds.length;
   const currentRank =
     ranking.findIndex((entry) => entry.id === currentRankingUser.id) + 1;
-  const completedQuestPercent = Math.round(
-    (completedCount / Math.max(quests.length, 1)) * 100,
+  const displayRankingUser = {
+    ...currentRankingUser,
+    name: identity.displayName,
+  };
+  const dailyQuest =
+    quests.find((quest) => quest.id === "share-opportunity") ?? quests[0];
+  const xpInsideLevel = levelProgress.xpInsideLevel;
+  const xpGoal = xpInsideLevel + levelProgress.xpToNextLevel;
+  const journeyTitle = getJourneyTitle(levelProgress.currentLevel);
+  const nextMilestoneMissions = getMissionsToNextMilestone(completedCount);
+  const impactStats = useMemo(
+    () => getImpactStats(completedQuests),
+    [completedQuests],
   );
-  const nextStepCopy =
-    levelProgress.xpToNextLevel === user.nextLevelXp
-      ? "Novo ciclo aberto para o proximo nivel."
-      : `Faltam ${formatXp(levelProgress.xpToNextLevel)} XP para subir.`;
 
-  const baseStats = useMemo(
+  const summaryStats = useMemo(
     () => [
       {
-        detail: "Energia de impacto total",
-        label: "Energia",
+        detail: "concluídas",
+        label: "Missões",
         tone: "green" as const,
-        value: `${formatXp(totalXp)} XP`,
-      },
-      {
-        detail: "Operacoes concluidas",
-        label: "Quests",
-        tone: "blue" as const,
         value: `${completedCount}/${quests.length}`,
       },
       {
-        detail: "Insignias desbloqueadas",
-        label: "Insignias",
+        detail: "desbloqueadas",
+        label: "Conquistas",
         tone: "gold" as const,
-        value: `${unlockedBadges.length}/${badges.length}`,
+        value: `${unlockedBadges.length}`,
+      },
+      {
+        detail: "posição",
+        label: "Comunidade",
+        tone: "blue" as const,
+        value: `#${currentRank}`,
       },
     ],
-    [badges.length, completedCount, quests.length, totalXp, unlockedBadges.length],
+    [completedCount, currentRank, quests.length, unlockedBadges.length],
   );
 
-  function activateScreen(screen: ActiveScreen) {
-    setActiveScreen(screen);
+  function activateScreen(screen: string) {
+    setActiveScreen(screen as ActiveScreen);
     window.requestAnimationFrame(() => {
       window.scrollTo({ behavior: "smooth", top: 0 });
     });
   }
 
-  function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function completeOnboarding() {
+    window.localStorage.setItem(onboardingStorageKey, "true");
+    window.dispatchEvent(new Event(onboardingStorageEvent));
+    setActiveScreen("home");
 
-    const formData = new FormData(event.currentTarget);
-
-    updateProfile({
-      handle: String(formData.get("handle") ?? profile.handle),
-      name: String(formData.get("name") ?? profile.name),
-    });
-  }
-
-  function selectAvatar(avatarId: string) {
-    updateProfile({ avatarId });
-  }
-
-  function handleReset() {
-    resetProgress();
-    setSettingsOpen(false);
-    activateScreen("base");
+    if (window.location.pathname !== "/") {
+      router.push("/");
+    }
   }
 
   if (!storageReady) {
     return <LoadingShell />;
   }
 
+  if (!onboardingCompleted) {
+    return <OnboardingFlow onComplete={completeOnboarding} />;
+  }
+
   return (
-    <div className="min-h-[100dvh] bg-[#05070D] text-[#F0F0FF] sm:bg-[linear-gradient(120deg,#05070D_0%,#0A0A12_45%,#11152B_100%)]">
-      <div className="mx-auto min-h-[100dvh] w-full max-w-md overflow-hidden border-x border-[#1E1E3A] bg-[#0A0A12] shadow-[0_0_60px_rgba(124,58,237,0.2)]">
-        <div className="relative min-h-[100dvh] overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#261A5A_0%,rgba(10,10,18,0)_34%),linear-gradient(180deg,rgba(6,182,212,0.08),rgba(10,10,18,0)_28%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20" />
+    <div className="min-h-[100dvh] bg-[#060913] text-[#F7F7FF]">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(53,208,127,0.16),transparent_30%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,0.10),transparent_26%)]" />
+      <div className="relative mx-auto min-h-[100dvh] w-full max-w-md overflow-hidden bg-[#080C18]/98 shadow-[0_24px_70px_rgba(0,0,0,0.45)] sm:border-x sm:border-white/10">
+        <AppHeader />
 
-          <header className="sticky top-0 z-40 border-b border-[#1E1E3A]/80 bg-[#0A0A12]/86 px-4 py-4 backdrop-blur-xl">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                className="min-w-0 text-left"
-                onClick={() => activateScreen("base")}
-                type="button"
-              >
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#06B6D4]">
-                  ConnectUS
-                </p>
-                <h1 className="truncate font-serif text-2xl font-black tracking-normal text-[#F0F0FF]">
-                  Quest
-                </h1>
-              </button>
+        {message ? (
+          <div className="fixed left-1/2 top-20 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-2xl border border-[#35D07F]/35 bg-[#101523]/96 px-4 py-3 text-sm font-extrabold text-[#BDF7D6] shadow-[0_14px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+            {message}
+          </div>
+        ) : null}
 
-              <div className="flex items-center gap-2">
-                <button
-                  aria-label="Abrir configuracoes"
-                  className="grid size-11 place-items-center rounded-2xl border border-[#1E1E3A] bg-[#12121E] text-lg font-black text-[#8888AA] shadow-sm transition hover:border-[#7C3AED] hover:text-[#F0F0FF]"
-                  onClick={() => setSettingsOpen(true)}
-                  type="button"
-                >
-                  ⚙
-                </button>
-                <button
-                  aria-label="Abrir ficha do agente"
-                  className="rounded-2xl border border-[#1E1E3A] bg-[#12121E] p-1 transition hover:border-[#35D07F]"
-                  onClick={() => activateScreen("agent")}
-                  type="button"
-                >
-                  <AvatarMark avatarId={profile.avatarId} size="sm" />
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {message ? (
-            <div className="fixed left-1/2 top-20 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-3xl border border-[#35D07F]/50 bg-[#102A26]/95 px-4 py-3 text-sm font-black text-[#F0F0FF] shadow-[0_0_24px_rgba(53,208,127,0.25)] backdrop-blur-xl">
-              {message}
-            </div>
-          ) : null}
-
-          {settingsOpen ? (
-            <SettingsPanel
-              onClose={() => setSettingsOpen(false)}
-              onReset={handleReset}
+        <main className="relative z-10 space-y-4 px-4 pb-[calc(5.8rem+env(safe-area-inset-bottom))] pt-2">
+          {activeScreen === "home" ? (
+            <HomeScreen
+              completedQuestIds={completedQuestIds}
+              currentLevel={levelProgress.currentLevel}
+              dailyQuest={dailyQuest}
+              firstName={firstName}
+              impactStats={impactStats}
+              isDailyQuestCompleted={completedQuestIds.includes(dailyQuest.id)}
+              isDailyQuestLocked={isQuestLocked(dailyQuest)}
+              journeyTitle={journeyTitle}
+              levelProgressPercent={levelProgress.progressPercent}
+              nextLevel={levelProgress.nextLevel}
+              nextMilestoneMissions={nextMilestoneMissions}
+              onCompleteQuest={completeQuest}
+              profile={displayProfile}
+              summaryStats={summaryStats}
+              xpGoal={xpGoal}
+              xpInsideLevel={xpInsideLevel}
+              xpToNextLevel={levelProgress.xpToNextLevel}
             />
           ) : null}
 
-          <main className="relative z-10 space-y-5 px-4 pb-32 pt-4">
-            {activeScreen === "base" ? (
-              <>
-                <section className="relative overflow-hidden rounded-[2rem] border border-[#1E1E3A] bg-[#12121E]/95 p-5 shadow-[0_0_35px_rgba(124,58,237,0.18)]">
-                  <div className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[#A855F7] to-transparent" />
-                  <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-[#35D07F] via-[#06B6D4] to-[#A855F7]" />
+          {activeScreen === "quests" ? (
+            <QuestsScreen
+              completedQuestIds={completedQuestIds}
+              isQuestLocked={isQuestLocked}
+              onCompleteQuest={completeQuest}
+              quests={quests}
+              userLevel={levelProgress.currentLevel}
+            />
+          ) : null}
 
-                  <div className="flex items-start gap-4">
-                    <AvatarMark avatarId={profile.avatarId} size="lg" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#06B6D4]">
-                        Agente ativo
-                      </p>
-                      <h2 className="mt-1 truncate font-serif text-3xl font-black leading-8 text-[#F0F0FF]">
-                        {profile.name}
-                      </h2>
-                      <p className="mt-1 truncate text-sm font-semibold text-[#8888AA]">
-                        {profile.handle}
-                      </p>
-                      <div className="mt-3 rounded-2xl border border-[#35D07F]/30 bg-[#0A0A12]/70 px-3 py-2">
-                        <p className="text-xs font-black text-[#35D07F]">
-                          {profileData.name}
-                        </p>
-                        <p className="mt-0.5 text-[11px] font-semibold leading-4 text-[#8888AA]">
-                          {profileData.title}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+          {activeScreen === "ranking" ? (
+            <RankingScreen
+              currentRankingUser={displayRankingUser}
+              currentRank={currentRank}
+              entries={mockRanking}
+              totalXp={totalXp}
+            />
+          ) : null}
 
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-3xl border border-[#1E1E3A] bg-[#0A0A12] p-4">
-                      <p className="text-[11px] font-black uppercase text-[#8888AA]">
-                        Nivel
-                      </p>
-                      <p className="mt-1 font-mono text-3xl font-black text-[#F5C451]">
-                        {levelProgress.currentLevel}
-                      </p>
-                    </div>
-                    <div className="rounded-3xl border border-[#1E1E3A] bg-[#0A0A12] p-4">
-                      <p className="text-[11px] font-black uppercase text-[#8888AA]">
-                        Energia
-                      </p>
-                      <p className="mt-1 font-mono text-3xl font-black text-[#35D07F]">
-                        {formatXp(totalXp)}
-                      </p>
-                    </div>
-                  </div>
+          {activeScreen === "profile" ? (
+            <ProfileScreen
+              badges={badges}
+              completedCount={completedCount}
+              currentLevel={levelProgress.currentLevel}
+              currentRank={currentRank}
+              impactStats={impactStats}
+              isBadgeUnlocked={isBadgeUnlocked}
+              isAuthenticated={identity.isAuthenticated}
+              journeyTitle={journeyTitle}
+              levelProgressPercent={levelProgress.progressPercent}
+              nextMilestoneMissions={nextMilestoneMissions}
+              onLogout={identity.logout}
+              onResetProgress={resetProgress}
+              profile={displayProfile}
+              questsCount={quests.length}
+              streakDays={user.streakDays}
+              totalXp={totalXp}
+              unlockedBadges={unlockedBadges}
+              xpGoal={xpGoal}
+              xpInsideLevel={xpInsideLevel}
+            />
+          ) : null}
+        </main>
 
-                  <div className="mt-5">
-                    <QuestProgress
-                      label={`Nivel ${levelProgress.currentLevel} para ${levelProgress.nextLevel}`}
-                      value={levelProgress.progressPercent}
-                      tone="dark"
-                    />
-                    <p className="mt-3 text-sm font-semibold leading-6 text-[#C9C2FF]">
-                      Sua jornada de impacto continua. {nextStepCopy}
-                    </p>
-                  </div>
-                </section>
-
-                <section className="space-y-3">
-                  <SectionHeader
-                    kicker="Operacoes recomendadas"
-                    title="Continue sua jornada de impacto"
-                  />
-                  {recommendedQuests.length > 0 ? (
-                    <div className="space-y-3">
-                      {recommendedQuests.map((quest) => (
-                        <CompactQuestCard
-                          completed={completedQuestIds.includes(quest.id)}
-                          key={quest.id}
-                          locked={isQuestLocked(quest)}
-                          onComplete={completeQuest}
-                          quest={quest}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      body="Todas as quests disponiveis foram concluidas. A rede ja sente seu impacto."
-                      title="Ciclo completo"
-                    />
-                  )}
-                </section>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {baseStats.map((stat) => (
-                    <StatCard
-                      detail={stat.detail}
-                      key={stat.label}
-                      label={stat.label}
-                      tone={stat.tone}
-                      value={stat.value}
-                    />
-                  ))}
-                </div>
-
-                <section className="space-y-3">
-                  <SectionHeader
-                    kicker="Recompensas"
-                    title="Insignias desbloqueadas"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    {badges.slice(0, 2).map((badge) => (
-                      <RewardBadge
-                        badge={badge}
-                        key={badge.id}
-                        unlocked={isBadgeUnlocked(badge)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              </>
-            ) : null}
-
-            {activeScreen === "quests" ? (
-              <>
-                <section className="rounded-[2rem] border border-[#1E1E3A] bg-[#12121E]/95 p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#06B6D4]">
-                    Quests de impacto
-                  </p>
-                  <h2 className="mt-2 font-serif text-3xl font-black text-[#F0F0FF]">
-                    Operacoes que movem a rede
-                  </h2>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[#8888AA]">
-                    Complete uma vez, ganhe XP uma vez. Seu nivel, hall e
-                    insignias atualizam no instante.
-                  </p>
-                  <div className="mt-5">
-                    <QuestProgress
-                      label={`${completedCount} de ${quests.length} quests concluidas`}
-                      value={completedQuestPercent}
-                      tone="dark"
-                    />
-                  </div>
-                </section>
-
-                <div className="space-y-4">
-                  {quests.map((quest) => (
-                    <QuestCard
-                      completed={completedQuestIds.includes(quest.id)}
-                      key={quest.id}
-                      locked={isQuestLocked(quest)}
-                      onComplete={completeQuest}
-                      quest={quest}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : null}
-
-            {activeScreen === "hall" ? (
-              <>
-                <section className="rounded-[2rem] border border-[#1E1E3A] bg-gradient-to-br from-[#12121E] to-[#0A0A12] p-5 shadow-[0_0_35px_rgba(245,196,81,0.12)]">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#F5C451]">
-                    Hall dos Agentes
-                  </p>
-                  <h2 className="mt-2 font-serif text-3xl font-black text-[#F0F0FF]">
-                    Top impactadores
-                  </h2>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-[#8888AA]">
-                    Sua posicao reage ao XP real salvo no seu progresso.
-                  </p>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-3xl border border-[#F5C451]/30 bg-[#2A210E] p-4">
-                      <p className="text-[11px] font-black uppercase text-[#F5C451]">
-                        Posicao
-                      </p>
-                      <p className="mt-1 font-mono text-3xl font-black text-[#F0F0FF]">
-                        #{currentRank}
-                      </p>
-                    </div>
-                    <div className="rounded-3xl border border-[#35D07F]/30 bg-[#102A26] p-4">
-                      <p className="text-[11px] font-black uppercase text-[#35D07F]">
-                        Seu XP
-                      </p>
-                      <p className="mt-1 font-mono text-3xl font-black text-[#F0F0FF]">
-                        {formatXp(totalXp)}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <RankingList
-                  currentUser={currentRankingUser}
-                  entries={mockRanking}
-                />
-              </>
-            ) : null}
-
-            {activeScreen === "agent" ? (
-              <>
-                <section className="rounded-[2rem] border border-[#1E1E3A] bg-[#12121E]/95 p-5">
-                  <div className="flex flex-col items-center text-center">
-                    <AvatarMark avatarId={profile.avatarId} size="lg" />
-                    <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-[#06B6D4]">
-                      Ficha do agente
-                    </p>
-                    <h2 className="mt-1 font-serif text-3xl font-black text-[#F0F0FF]">
-                      {profile.name}
-                    </h2>
-                    <p className="mt-1 text-sm font-semibold text-[#8888AA]">
-                      {profile.handle}
-                    </p>
-                  </div>
-
-                  <form className="mt-6 space-y-4" onSubmit={saveProfile}>
-                    <label className="block">
-                      <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8888AA]">
-                        Nome publico
-                      </span>
-                      <input
-                        className="mt-2 w-full rounded-2xl border border-[#1E1E3A] bg-[#0A0A12] px-4 py-3 text-sm font-bold text-[#F0F0FF] outline-none transition placeholder:text-[#55557A] focus:border-[#7C3AED] focus:shadow-[0_0_20px_rgba(168,85,247,0.25)]"
-                        defaultValue={profile.name}
-                        key={`name-${profile.name}`}
-                        maxLength={40}
-                        name="name"
-                        onBlur={(event) =>
-                          updateProfile({ name: event.currentTarget.value })
-                        }
-                        placeholder="Seu nome de agente"
-                      />
-                    </label>
-
-                    <label className="block">
-                      <span className="text-xs font-black uppercase tracking-[0.12em] text-[#8888AA]">
-                        Handle
-                      </span>
-                      <input
-                        className="mt-2 w-full rounded-2xl border border-[#1E1E3A] bg-[#0A0A12] px-4 py-3 text-sm font-bold text-[#F0F0FF] outline-none transition placeholder:text-[#55557A] focus:border-[#35D07F] focus:shadow-[0_0_20px_rgba(53,208,127,0.22)]"
-                        defaultValue={profile.handle}
-                        key={`handle-${profile.handle}`}
-                        maxLength={24}
-                        name="handle"
-                        onBlur={(event) =>
-                          updateProfile({ handle: event.currentTarget.value })
-                        }
-                        placeholder="@seu.handle"
-                      />
-                    </label>
-
-                    <Button className="w-full" type="submit">
-                      Salvar identidade
-                    </Button>
-                  </form>
-                </section>
-
-                <section className="space-y-3">
-                  <SectionHeader
-                    kicker="Especialidade"
-                    title="Escolha seu avatar"
-                  />
-                  <AvatarPicker
-                    onSelect={selectAvatar}
-                    options={user.avatarOptions}
-                    selectedAvatar={profile.avatarId}
-                  />
-                </section>
-
-                <section className="space-y-3">
-                  <SectionHeader kicker="Resumo" title="Estatisticas" />
-                  <div className="grid grid-cols-2 gap-3">
-                    <StatCard
-                      detail="Energia acumulada"
-                      label="XP total"
-                      tone="green"
-                      value={`${formatXp(totalXp)} XP`}
-                    />
-                    <StatCard
-                      detail="Nivel atual"
-                      label="Nivel"
-                      tone="blue"
-                      value={`${levelProgress.currentLevel}`}
-                    />
-                    <StatCard
-                      detail="Quests concluidas"
-                      label="Quests"
-                      tone="gold"
-                      value={`${completedCount}/${quests.length}`}
-                    />
-                    <StatCard
-                      detail="Insignias ativas"
-                      label="Insignias"
-                      tone="green"
-                      value={`${unlockedBadges.length}/${badges.length}`}
-                    />
-                  </div>
-                </section>
-
-                <section className="space-y-3">
-                  <SectionHeader kicker="Colecao" title="Insignias" />
-                  <div className="grid grid-cols-2 gap-3">
-                    {badges.map((badge) => (
-                      <RewardBadge
-                        badge={badge}
-                        key={badge.id}
-                        unlocked={isBadgeUnlocked(badge)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              </>
-            ) : null}
-          </main>
-
-          <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-[#1E1E3A]/90 bg-[#0A0A12]/92 px-3 pb-4 pt-3 backdrop-blur-xl">
-            <div className="grid grid-cols-4 gap-2 rounded-[1.7rem] border border-[#1E1E3A] bg-[#12121E]/95 p-2 shadow-[0_0_28px_rgba(124,58,237,0.18)]">
-              {navItems.map((item) => {
-                const active = activeScreen === item.id;
-
-                return (
-                  <button
-                    aria-current={active ? "page" : undefined}
-                    className={`rounded-2xl px-2 py-2 text-center transition duration-200 active:scale-95 ${
-                      active
-                        ? "bg-gradient-to-br from-[#7C3AED] to-[#A855F7] text-[#F0F0FF] shadow-[0_0_20px_rgba(168,85,247,0.4)]"
-                        : "text-[#8888AA] hover:bg-white/5 hover:text-[#F0F0FF]"
-                    }`}
-                    key={item.id}
-                    onClick={() => activateScreen(item.id)}
-                    type="button"
-                  >
-                    <span className="block font-mono text-[11px] font-black">
-                      {item.signal}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-black">
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        </div>
+        <BottomNav
+          activeId={activeScreen}
+          items={navItems}
+          onSelect={activateScreen}
+        />
       </div>
     </div>
   );
 }
 
-function SectionHeader({ kicker, title }: { kicker: string; title: string }) {
+function AppHeader() {
   return (
-    <div>
-      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#06B6D4]">
-        {kicker}
-      </p>
-      <h2 className="mt-1 font-serif text-2xl font-black tracking-normal text-[#F0F0FF]">
-        {title}
-      </h2>
-    </div>
+    <header className="sticky top-0 z-30 bg-[#080C18]/86 px-5 pb-2.5 pt-4 backdrop-blur-xl">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 text-left">
+          <p className="truncate text-lg font-black tracking-normal text-white">
+            ConnectUS Quest
+          </p>
+          <p className="mt-0.5 inline-flex items-center gap-1.5 rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-[#A7A8C8]">
+            <CeloOrbitMark />
+            powered by Celo
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <CeloLoginChip />
+          <button
+            aria-label="Notificações"
+            className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-[#A7A8C8] transition active:scale-95"
+            type="button"
+          >
+            <BellIcon />
+          </button>
+        </div>
+      </div>
+    </header>
   );
 }
 
-function CompactQuestCard({
+function HomeScreen({
+  completedQuestIds,
+  currentLevel,
+  dailyQuest,
+  firstName,
+  impactStats,
+  isDailyQuestCompleted,
+  isDailyQuestLocked,
+  journeyTitle,
+  levelProgressPercent,
+  nextLevel,
+  nextMilestoneMissions,
+  onCompleteQuest,
+  profile,
+  summaryStats,
+  xpGoal,
+  xpInsideLevel,
+  xpToNextLevel,
+}: {
+  completedQuestIds: string[];
+  currentLevel: number;
+  dailyQuest: Quest;
+  firstName: string;
+  impactStats: ImpactStats;
+  isDailyQuestCompleted: boolean;
+  isDailyQuestLocked: boolean;
+  journeyTitle: string;
+  levelProgressPercent: number;
+  nextLevel: number;
+  nextMilestoneMissions: number;
+  onCompleteQuest: (questId: string) => void;
+  profile: { avatarId: string; handle: string; name: string };
+  summaryStats: Array<{
+    detail: string;
+    label: string;
+    tone: "green" | "gold" | "blue";
+    value: string;
+  }>;
+  xpGoal: number;
+  xpInsideLevel: number;
+  xpToNextLevel: number;
+}) {
+  return (
+    <>
+      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-black leading-9 text-white">
+              Oi, {firstName} 👋
+            </h1>
+            <p className="mt-2 max-w-[15rem] text-sm font-medium leading-5 text-[#A7A8C8]">
+              Você está evoluindo como {journeyTitle}.
+            </p>
+          </div>
+          <AvatarMark avatarId={profile.avatarId} label={profile.name} size="md" />
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-[#35D07F]/20 bg-[#0F1A20] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-[#BDF7D6]">
+              {journeyTitle}
+            </p>
+            <h2 className="mt-1 text-3xl font-black text-white">
+              Nível {currentLevel}
+            </h2>
+            <p className="mt-1 text-sm font-medium text-[#A7A8C8]">
+              {formatXp(xpInsideLevel)} / {formatXp(xpGoal)} XP
+            </p>
+          </div>
+          <div className="rounded-full bg-[#FBCC5C]/12 px-3 py-1.5 text-sm font-extrabold text-[#FFE7A3]">
+            ⚡
+          </div>
+        </div>
+        <div className="mt-4">
+          <QuestProgress value={levelProgressPercent} />
+        </div>
+        <p className="mt-3 text-xs font-medium text-[#A7A8C8]">
+          Faltam {formatXp(xpToNextLevel)} XP para o nível {nextLevel}.
+        </p>
+        <p className="mt-1 text-xs font-medium text-[#8F96B3]">
+          Faltam {nextMilestoneMissions} missões para alcançar o próximo marco.
+        </p>
+      </section>
+
+      <DailyQuestCard
+        completed={isDailyQuestCompleted}
+        currentLevel={currentLevel}
+        locked={isDailyQuestLocked}
+        onComplete={onCompleteQuest}
+        quest={dailyQuest}
+      />
+
+      <ImpactSection impactStats={impactStats} />
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-black text-white">Seu progresso</h2>
+          <p className="text-xs font-medium text-[#8F96B3]">
+            {completedQuestIds.length > 0
+              ? "Continue evoluindo"
+              : "Comece pela missão do dia"}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {summaryStats.map((stat) => (
+            <StatCard
+              detail={stat.detail}
+              key={stat.label}
+              label={stat.label}
+              tone={stat.tone}
+              value={stat.value}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function DailyQuestCard({
   completed,
+  currentLevel,
   locked,
   onComplete,
   quest,
 }: {
   completed: boolean;
+  currentLevel: number;
   locked: boolean;
   onComplete: (questId: string) => void;
   quest: Quest;
 }) {
   return (
-    <article className="rounded-3xl border border-[#1E1E3A] bg-[#12121E]/95 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#7C3AED]/70 hover:shadow-[0_0_20px_rgba(168,85,247,0.18)]">
-      <div className="flex items-center gap-3">
-        <div className="grid size-12 shrink-0 place-items-center rounded-2xl border border-[#06B6D4]/40 bg-[#081525] font-mono text-xs font-black tracking-[0.16em] text-[#06B6D4]">
-          {quest.signal}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-serif text-lg font-black text-[#F0F0FF]">
+    <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[#35D07F]">Missão do dia</p>
+          <h2 className="mt-1 text-2xl font-black leading-8 text-white">
             {quest.title}
-          </h3>
-          <p className="mt-0.5 text-xs font-semibold text-[#8888AA]">
-            +{formatXp(quest.xp)} XP de impacto
+          </h2>
+          <p className="mt-2 text-sm font-medium leading-5 text-[#A7A8C8]">
+            Cada ação fortalece sua comunidade.
           </p>
         </div>
+        <div className="rounded-full bg-[#FBCC5C]/12 px-3 py-1.5 text-sm font-extrabold text-[#FFE7A3]">
+          +{quest.xp} XP
+        </div>
+      </div>
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-[#8F96B3]">
+          {completed ? "Missão concluída" : "Você ganha XP ao concluir."}
+        </p>
         <Button
-          className="min-h-10 px-3 text-xs"
+          className="px-5"
           disabled={completed || locked}
           onClick={() => onComplete(quest.id)}
           variant={completed || locked ? "secondary" : "primary"}
         >
-          {completed ? "Feita" : locked ? "Bloq." : "Concluir"}
+          {completed ? "Concluída" : "Concluir missão"}
         </Button>
       </div>
-    </article>
+      {completed ? (
+        <div className="mt-4">
+          <SecureImpactRecord
+            missionTitle={quest.title}
+            userLevel={currentLevel}
+            xpReward={quest.xp}
+          />
+        </div>
+      ) : null}
+    </section>
   );
 }
 
-function EmptyState({ body, title }: { body: string; title: string }) {
+function ImpactSection({ impactStats }: { impactStats: ImpactStats }) {
   return (
-    <div className="rounded-3xl border border-[#1E1E3A] bg-[#12121E]/86 p-5 text-center">
-      <p className="font-serif text-xl font-black text-[#F0F0FF]">{title}</p>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#8888AA]">
-        {body}
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-black text-white">Seu Impacto</h2>
+        <p className="mt-1 text-sm font-medium text-[#8F96B3]">
+          Cada ação fortalece sua comunidade.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        <StatCard
+          detail="missões"
+          label="Feitas"
+          tone="green"
+          value={`${impactStats.completedMissions}`}
+        />
+        <StatCard
+          detail="oportunidades"
+          label="Compart."
+          tone="gold"
+          value={`${impactStats.sharedOpportunities}`}
+        />
+        <StatCard
+          detail="ações"
+          label="Comunidade"
+          tone="blue"
+          value={`${impactStats.communityActions}`}
+        />
+      </div>
+    </section>
+  );
+}
+
+function QuestsScreen({
+  completedQuestIds,
+  isQuestLocked,
+  onCompleteQuest,
+  quests,
+  userLevel,
+}: {
+  completedQuestIds: string[];
+  isQuestLocked: (quest: Quest) => boolean;
+  onCompleteQuest: (questId: string) => void;
+  quests: Quest[];
+  userLevel: number;
+}) {
+  const [activeFilter, setActiveFilter] = useState<QuestFilter>("all");
+  const filteredQuests = quests.filter((quest) =>
+    matchesQuestFilter(quest, activeFilter),
+  );
+
+  return (
+    <>
+      <PageIntro
+        subtitle="Complete missões simples e ganhe XP."
+        title="Missões"
+      />
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {questFilters.map((filter) => {
+          const active = filter.id === activeFilter;
+
+          return (
+            <button
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                active
+                  ? "border-[#35D07F]/45 bg-[#35D07F]/14 text-[#BDF7D6]"
+                  : "border-white/10 bg-white/[0.04] text-[#A7A8C8]"
+              }`}
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              type="button"
+            >
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3">
+        {filteredQuests.map((quest) => (
+          <QuestCard
+            completed={completedQuestIds.includes(quest.id)}
+            key={quest.id}
+            locked={isQuestLocked(quest)}
+            onComplete={onCompleteQuest}
+            quest={quest}
+            userLevel={userLevel}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function RankingScreen({
+  currentRankingUser,
+  currentRank,
+  entries,
+  totalXp,
+}: {
+  currentRankingUser: RankingEntry;
+  currentRank: number;
+  entries: RankingEntry[];
+  totalXp: number;
+}) {
+  return (
+    <>
+      <PageIntro
+        subtitle="Veja pessoas evoluindo juntas em impacto."
+        title="Pessoas em destaque"
+      />
+      <section className="grid grid-cols-2 gap-3">
+        <StatCard
+          detail="sua posição"
+          label="Comunidade"
+          tone="blue"
+          value={`#${currentRank}`}
+        />
+        <StatCard
+          detail="energia total"
+          label="Seu XP"
+          tone="green"
+          value={formatXp(totalXp)}
+        />
+      </section>
+      <RankingList currentUser={currentRankingUser} entries={entries} />
+    </>
+  );
+}
+
+function ProfileScreen({
+  badges,
+  completedCount,
+  currentLevel,
+  currentRank,
+  impactStats,
+  isBadgeUnlocked,
+  isAuthenticated,
+  journeyTitle,
+  levelProgressPercent,
+  nextMilestoneMissions,
+  onLogout,
+  onResetProgress,
+  profile,
+  questsCount,
+  streakDays,
+  totalXp,
+  unlockedBadges,
+  xpGoal,
+  xpInsideLevel,
+}: {
+  badges: typeof mockBadges;
+  completedCount: number;
+  currentLevel: number;
+  currentRank: number;
+  impactStats: ImpactStats;
+  isBadgeUnlocked: (badge: (typeof mockBadges)[number]) => boolean;
+  isAuthenticated: boolean;
+  journeyTitle: string;
+  levelProgressPercent: number;
+  nextMilestoneMissions: number;
+  onLogout: () => void;
+  onResetProgress: () => void;
+  profile: { avatarId: string; handle: string; name: string };
+  questsCount: number;
+  streakDays: number;
+  totalXp: number;
+  unlockedBadges: typeof mockBadges;
+  xpGoal: number;
+  xpInsideLevel: number;
+}) {
+  return (
+    <>
+      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 text-center shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+        <div className="flex justify-center">
+          <AvatarMark avatarId={profile.avatarId} label={profile.name} size="lg" />
+        </div>
+        <h1 className="mt-4 text-3xl font-black text-white">{profile.name}</h1>
+        <p className="mt-1 text-sm font-medium text-[#A7A8C8]">
+          {profile.handle} · {journeyTitle}
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3 text-left">
+          <StatCard
+            detail="nível atual"
+            label="Nível"
+            tone="blue"
+            value={`${currentLevel}`}
+          />
+          <StatCard
+            detail="energia de impacto"
+            label="XP"
+            tone="green"
+            value={formatXp(totalXp)}
+          />
+        </div>
+        <div className="mt-5 text-left">
+          <QuestProgress
+            label={`${formatXp(xpInsideLevel)} / ${formatXp(xpGoal)} XP`}
+            value={levelProgressPercent}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+        <SectionTitle
+          subtitle={`Você está evoluindo como ${journeyTitle}.`}
+          title="Minha Jornada"
+        />
+        <div className="mt-4 rounded-3xl bg-white/[0.04] p-4">
+          <p className="text-sm font-semibold leading-6 text-white">
+            Faltam {nextMilestoneMissions} missões para alcançar o próximo
+            marco.
+          </p>
+          <p className="mt-1 text-xs font-medium leading-5 text-[#8F96B3]">
+            Cada ação registrada ajuda a mostrar sua evolução e o impacto que
+            você está construindo.
+          </p>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          <StatCard
+            detail="missões"
+            label="Feitas"
+            tone="green"
+            value={`${impactStats.completedMissions}`}
+          />
+          <StatCard
+            detail="oportunidades"
+            label="Compart."
+            tone="gold"
+            value={`${impactStats.sharedOpportunities}`}
+          />
+          <StatCard
+            detail="ações"
+            label="Comunidade"
+            tone="blue"
+            value={`${impactStats.communityActions}`}
+          />
+        </div>
+      </section>
+
+      <section className="grid grid-cols-3 gap-2.5">
+        <StatCard
+          detail="concluídas"
+          label="Missões"
+          tone="green"
+          value={`${completedCount}/${questsCount}`}
+        />
+        <StatCard
+          detail="seguidos"
+          label="Dias"
+          tone="gold"
+          value={`${streakDays}`}
+        />
+        <StatCard
+          detail="posição"
+          label="Comunidade"
+          tone="blue"
+          value={`#${currentRank}`}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle
+          subtitle={
+            unlockedBadges.length > 0
+              ? "Suas conquistas mais recentes."
+              : "Conclua missões para desbloquear novas conquistas."
+          }
+          title="Conquistas"
+        />
+        {unlockedBadges.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3">
+            {unlockedBadges.map((badge) => (
+              <RewardBadge badge={badge} key={badge.id} unlocked />
+            ))}
+          </div>
+        ) : (
+          <EmptyState body="Conclua sua primeira missão do dia." />
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle subtitle="Tudo que você pode desbloquear." title="Coleção" />
+        <div className="grid grid-cols-2 gap-3">
+          {badges.map((badge) => (
+            <RewardBadge
+              badge={badge}
+              key={badge.id}
+              unlocked={isBadgeUnlocked(badge)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <p className="rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-medium text-[#8F96B3]">
+        Tecnologia Celo nos bastidores.
       </p>
+
+      <section className="space-y-3">
+        <SectionTitle
+          subtitle="Tecnologia Celo nos bastidores para preparar sua jornada para futuras recompensas."
+          title="Conta e segurança"
+        />
+        <CeloAccountCard />
+      </section>
+
+      <SecureRecordsSummary />
+
+      {isAuthenticated ? (
+        <Button className="w-full" onClick={onLogout} variant="ghost">
+          Sair da conta
+        </Button>
+      ) : null}
+
+      <Button className="w-full" onClick={onResetProgress} variant="secondary">
+        Recomeçar progresso
+      </Button>
+    </>
+  );
+}
+
+function matchesQuestFilter(quest: Quest, filter: QuestFilter) {
+  const socialCategories = new Set<QuestCategory>(["community", "impact"]);
+  const learnCategories = new Set<QuestCategory>(["learn", "builder"]);
+
+  if (filter === "daily") {
+    return quest.id === "share-opportunity" || quest.difficulty === "easy";
+  }
+
+  if (filter === "social") {
+    return socialCategories.has(quest.category);
+  }
+
+  if (filter === "learn") {
+    return learnCategories.has(quest.category);
+  }
+
+  return true;
+}
+
+function PageIntro({ subtitle, title }: { subtitle: string; title: string }) {
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.2)]">
+      <h1 className="text-3xl font-black text-white">{title}</h1>
+      <p className="mt-2 text-sm font-medium leading-5 text-[#A7A8C8]">
+        {subtitle}
+      </p>
+    </section>
+  );
+}
+
+function SectionTitle({
+  subtitle,
+  title,
+}: {
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-lg font-black text-white">{title}</h2>
+      <p className="mt-1 text-sm font-medium text-[#8F96B3]">{subtitle}</p>
     </div>
+  );
+}
+
+function EmptyState({ body }: { body: string }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-center">
+      <p className="text-sm font-medium leading-6 text-[#A7A8C8]">{body}</p>
+    </div>
+  );
+}
+
+function CeloOrbitMark() {
+  return (
+    <span aria-hidden="true" className="relative inline-block size-3.5 shrink-0">
+      <span className="absolute left-0 top-1 size-2 rounded-full border border-[#35D07F] bg-[#35D07F]/16" />
+      <span className="absolute right-0 top-0 size-1.5 rounded-full border border-[#FBCC5C] bg-[#FBCC5C]/16" />
+      <span className="absolute bottom-0 right-1 size-1 rounded-full border border-[#22D3EE] bg-[#22D3EE]/16" />
+    </span>
   );
 }
 
 function LoadingShell() {
   return (
-    <div className="min-h-[100dvh] bg-[#05070D] text-[#F0F0FF] sm:bg-[linear-gradient(120deg,#05070D_0%,#0A0A12_45%,#11152B_100%)]">
-      <div className="mx-auto grid min-h-[100dvh] w-full max-w-md place-items-center border-x border-[#1E1E3A] bg-[#0A0A12] px-4">
-        <section className="w-full rounded-[2rem] border border-[#1E1E3A] bg-[#12121E] p-6 text-center shadow-[0_0_40px_rgba(168,85,247,0.18)]">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#06B6D4]">
-            ConnectUS Quest
+    <div className="min-h-[100dvh] bg-[#060913] text-[#F7F7FF]">
+      <div className="mx-auto grid min-h-[100dvh] w-full max-w-md place-items-center px-4">
+        <section className="w-full rounded-[1.75rem] border border-white/10 bg-[#101523] p-6 text-center shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+          <p className="text-lg font-black text-white">ConnectUS Quest</p>
+          <p className="mt-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-[#A7A8C8]">
+            <CeloOrbitMark />
+            powered by Celo
           </p>
-          <h1 className="mt-2 font-serif text-3xl font-black text-[#F0F0FF]">
-            Inicializando base
-          </h1>
-          <div className="mx-auto mt-5 h-3 w-40 overflow-hidden rounded-full bg-[#0A0A12] p-1 ring-1 ring-[#1E1E3A]">
-            <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-[#35D07F] via-[#06B6D4] to-[#A855F7] shadow-[0_0_18px_rgba(168,85,247,0.4)] motion-safe:animate-pulse" />
+          <div className="mx-auto mt-5 h-3 w-40 overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="h-full w-2/3 rounded-full bg-[#35D07F] motion-safe:animate-pulse" />
           </div>
-          <p className="mt-4 text-sm font-semibold text-[#8888AA]">
-            Carregando seu progresso local.
+          <p className="mt-4 text-sm font-medium text-[#A7A8C8]">
+            Carregando seu progresso.
           </p>
         </section>
       </div>
@@ -627,43 +938,16 @@ function LoadingShell() {
   );
 }
 
-function SettingsPanel({
-  onClose,
-  onReset,
-}: {
-  onClose: () => void;
-  onReset: () => void;
-}) {
+function BellIcon() {
   return (
-    <div className="absolute inset-0 z-50 bg-[#05070D]/80 px-4 pt-24 backdrop-blur-md">
-      <section className="rounded-[2rem] border border-[#1E1E3A] bg-[#12121E] p-5 shadow-[0_0_40px_rgba(168,85,247,0.24)]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#06B6D4]">
-              Configuracoes
-            </p>
-            <h2 className="mt-1 font-serif text-2xl font-black text-[#F0F0FF]">
-              Controle da simulacao
-            </h2>
-          </div>
-          <button
-            className="rounded-2xl border border-[#1E1E3A] bg-[#0A0A12] px-3 py-2 text-xs font-black text-[#8888AA] transition hover:border-[#7C3AED] hover:text-[#F0F0FF]"
-            onClick={onClose}
-            type="button"
-          >
-            Fechar
-          </button>
-        </div>
-
-        <p className="mt-4 text-sm font-semibold leading-6 text-[#8888AA]">
-          O reset apaga somente os dados salvos pelo ConnectUS Quest neste
-          navegador: perfil, avatar e quests concluidas.
-        </p>
-
-        <Button className="mt-5 w-full" onClick={onReset} variant="secondary">
-          Resetar progresso
-        </Button>
-      </section>
-    </div>
+    <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M15 18a3 3 0 0 1-6 0M18 9.8c0-3.4-2.1-5.8-6-5.8S6 6.4 6 9.8c0 4.9-2 5.5-2 7.2h16c0-1.7-2-2.3-2-7.2Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ConnectUS Quest",
   description:
-    "Mini app gamificado para jornadas de impacto social no ecossistema Celo.",
+    "Mini app gamificado para missões simples, progresso pessoal e impacto em comunidade.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

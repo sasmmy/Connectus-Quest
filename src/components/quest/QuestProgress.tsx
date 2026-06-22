@@ -2,32 +2,23 @@ import { clampPercent } from "@/lib/formatters";
 
 type QuestProgressProps = {
   value: number;
-  label: string;
-  tone?: "light" | "dark";
+  label?: string;
 };
 
-export function QuestProgress({ value, label, tone = "light" }: QuestProgressProps) {
+export function QuestProgress({ value, label }: QuestProgressProps) {
   const safeValue = clampPercent(value);
 
   return (
     <div>
-      <div
-        className={`mb-2 flex items-center justify-between text-sm ${
-          tone === "dark" ? "text-[#F5F7FA]" : "text-[#F5F7FA]"
-        }`}
-      >
-        <span className="font-black">{label}</span>
-        <span className="font-mono font-black">{safeValue}%</span>
-      </div>
-      <div
-        className={`h-5 overflow-hidden rounded-full p-1 shadow-inner ring-1 ${
-          tone === "dark"
-            ? "bg-[#08121C]/70 ring-white/15"
-            : "bg-[#08121C]/70 ring-white/10"
-        }`}
-      >
+      {label ? (
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+          <span className="font-medium text-[#A7A8C8]">{label}</span>
+          <span className="font-bold text-[#BDF7D6]">{safeValue}%</span>
+        </div>
+      ) : null}
+      <div className="h-3 overflow-hidden rounded-full bg-white/[0.08]">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#35D07F] via-[#F5C451] to-[#6F5BFF] shadow-[0_0_18px_rgba(53,208,127,0.45)] transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-[#35D07F] to-[#FBCC5C] shadow-[0_0_14px_rgba(53,208,127,0.24)] transition-all duration-500"
           style={{ width: `${safeValue}%` }}
         />
       </div>

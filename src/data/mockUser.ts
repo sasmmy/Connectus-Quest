@@ -3,7 +3,7 @@ import type { MockUser } from "@/types/user";
 export const mockUser: MockUser = {
   name: "Samy Explorer",
   handle: "@samy.celo",
-  role: "Agente de Mudança",
+  role: "Criador de impacto",
   avatarId: "community-navigator",
   avatarOptions: [
     "community-navigator",
@@ -13,7 +13,7 @@ export const mockUser: MockUser = {
     "urban-explorer",
     "impact-architect",
   ],
-  baseXp: 180,
+  baseXp: 260,
   level: 3,
   nextLevelXp: 500,
   streakDays: 4,

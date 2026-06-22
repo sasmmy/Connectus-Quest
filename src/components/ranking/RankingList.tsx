@@ -1,5 +1,5 @@
-import { formatXp } from "@/lib/formatters";
 import { AvatarMark } from "@/components/avatar/AvatarMark";
+import { formatXp } from "@/lib/formatters";
 import type { RankingEntry } from "@/types/ranking";
 
 type RankingListProps = {
@@ -8,7 +8,9 @@ type RankingListProps = {
 };
 
 export function RankingList({ entries, currentUser }: RankingListProps) {
-  const ranking = [...entries, currentUser].sort((left, right) => right.xp - left.xp);
+  const ranking = [...entries, currentUser].sort(
+    (left, right) => right.xp - left.xp,
+  );
 
   return (
     <div className="space-y-3">
@@ -17,40 +19,40 @@ export function RankingList({ entries, currentUser }: RankingListProps) {
 
         return (
           <article
-            className={`flex items-center gap-3 rounded-3xl border p-3 shadow-sm ${
+            className={`flex items-center gap-3 rounded-3xl border p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.18)] ${
               isCurrentUser
-                ? "border-[#35D07F]/60 bg-gradient-to-r from-[#102A26] to-[#0F1F2B] shadow-[#35D07F]/10"
-                : "border-white/10 bg-[#0F1F2B]/92 shadow-black/20"
+                ? "border-[#35D07F]/42 bg-[#35D07F]/[0.08]"
+                : "border-white/10 bg-[#101523]/88"
             }`}
             key={entry.id}
           >
             <div
               aria-label={`${index + 1} lugar`}
-              className={`grid size-9 place-items-center rounded-2xl border text-sm font-black ${
+              className={`grid size-8 shrink-0 place-items-center rounded-full text-sm font-black ${
                 index === 0
-                  ? "border-[#F5C451] bg-[#F5C451] text-[#08121C]"
-                  : "border-white/10 bg-[#08121C] text-[#F5F7FA]"
+                  ? "bg-[#FBCC5C] text-[#151006]"
+                  : "bg-white/[0.07] text-[#A7A8C8]"
               }`}
             >
               {index + 1}
             </div>
-            <AvatarMark avatarId={entry.avatar} size="sm" />
+            <AvatarMark avatarId={entry.avatar} label={entry.name} size="sm" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="truncate font-serif text-sm font-black text-[#F5F7FA]">
+                <h3 className="truncate text-sm font-extrabold text-white">
                   {entry.name}
                 </h3>
                 {isCurrentUser ? (
-                  <span className="rounded-full bg-[#35D07F] px-2 py-0.5 text-[10px] font-black uppercase text-[#08121C]">
-                    Voce
+                  <span className="rounded-full bg-[#35D07F]/14 px-2 py-0.5 text-[10px] font-bold text-[#BDF7D6]">
+                    Você
                   </span>
                 ) : null}
               </div>
-              <p className="truncate text-xs font-semibold text-[#9FB2BE]">
+              <p className="truncate text-xs font-medium text-[#8F96B3]">
                 {entry.role}
               </p>
             </div>
-            <p className="text-sm font-black text-[#F5C451]">
+            <p className="shrink-0 text-sm font-extrabold text-[#BDF7D6]">
               {formatXp(entry.xp)} XP
             </p>
           </article>

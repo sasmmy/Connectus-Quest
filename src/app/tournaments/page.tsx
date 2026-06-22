@@ -1,5 +1,5 @@
-import { ConnectUSQuestApp } from "@/components/connectus/ConnectUSQuestApp";
+import { redirect } from "next/navigation";
 
 export default function TournamentsPage() {
-  return <ConnectUSQuestApp initialScreen="quests" />;
+  redirect("/quests");
 }
