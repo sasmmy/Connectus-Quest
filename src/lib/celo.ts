@@ -5,6 +5,7 @@ export const celoMainnet = celo;
 export const celoTestnet = celoSepolia;
 export const lastCeloRecordTxStorageKey = "connectus_last_celo_record_tx";
 export const celoRecordStorageEvent = "connectus-celo-record-change";
+export const celoMainnetExplorerUrl = "https://celoscan.io";
 
 export function shortenAddress(address: string) {
   if (address.length <= 12) {
@@ -15,11 +16,11 @@ export function shortenAddress(address: string) {
 }
 
 export function getCeloExplorerAddressUrl(address: string) {
-  return `https://celoscan.io/address/${address}`;
+  return `${celoMainnetExplorerUrl}/address/${address}`;
 }
 
 export function getCeloExplorerTxUrl(txHash: string) {
-  return `${celoTestnet.blockExplorers.default.url.replace(/\/$/, "")}/tx/${txHash}`;
+  return `${celoMainnetExplorerUrl}/tx/${txHash}`;
 }
 
 export function encodeImpactRecord(metadata: string): Hex {

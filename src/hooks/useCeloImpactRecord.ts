@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { createWalletClient, custom, type Address, type Hex } from "viem";
+import { createWalletClient, custom, type Address } from "viem";
 import {
-  celoTestnet,
-  encodeImpactRecord,
-  saveLastCeloRecordTx,
-} from "@/lib/celo";
+  connectUSImpactRegistryAbi,
+  connectUSImpactRegistryAddress,
+} from "@/lib/contracts";
+import { celoMainnet, saveLastCeloRecordTx } from "@/lib/celo";
 
 type RegisterImpactRecordInput = {
   missionTitle: string;
@@ -17,6 +17,14 @@ type RegisterImpactRecordInput = {
 
 const friendlyError =
   "Não conseguimos registrar agora. Seu progresso continua salvo no app.";
+
+function toPositiveBigInt(value: number, fallback: number) {
+  const normalizedValue = Number.isFinite(value)
+    ? Math.max(Math.trunc(value), 0)
+    : fallback;
+
+  return BigInt(normalizedValue);
+}
 
 export function useCeloImpactRecord() {
   const { authenticated, ready } = usePrivy();
@@ -47,30 +55,26 @@ export function useCeloImpactRecord() {
       setIsRegistering(true);
 
       try {
-        await connectedAccount.switchChain(celoTestnet.id);
+        await connectedAccount.switchChain(celoMainnet.id);
 
         const provider = await connectedAccount.getEthereumProvider();
         const walletClient = createWalletClient({
           account: connectedAccount.address as Address,
-          chain: celoTestnet,
+          chain: celoMainnet,
           transport: custom(provider),
         });
-        const timestamp = new Date().toISOString();
-        const metadata = [
-          "ConnectUS Quest",
-          "missão concluída",
-          missionTitle,
-          `+${xpReward} XP`,
-          `nível ${userLevel}`,
-          timestamp,
-        ].join(" | ");
-        const data = encodeImpactRecord(metadata);
-        const hash = await walletClient.sendTransaction({
+
+        const hash = await walletClient.writeContract({
           account: connectedAccount.address as Address,
-          chain: celoTestnet,
-          data: data as Hex,
-          to: connectedAccount.address as Address,
-          value: BigInt(0),
+          address: connectUSImpactRegistryAddress,
+          abi: connectUSImpactRegistryAbi,
+          args: [
+            missionTitle,
+            toPositiveBigInt(xpReward, 0),
+            toPositiveBigInt(userLevel, 1),
+          ],
+          chain: celoMainnet,
+          functionName: "registerImpact",
         });
 
         setTxHash(hash);

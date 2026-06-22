@@ -1,7 +1,7 @@
 "use client";
 
 import { PrivyProvider, type PrivyClientConfig } from "@privy-io/react-auth";
-import { celoMainnet, celoTestnet } from "@/lib/celo";
+import { celoMainnet } from "@/lib/celo";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ const privyConfig: PrivyClientConfig = {
     theme: "#080C18",
     walletChainType: "ethereum-only",
   },
-  defaultChain: celoTestnet,
+  defaultChain: celoMainnet,
   embeddedWallets: {
     ethereum: {
       createOnLogin: "users-without-wallets",
@@ -26,7 +26,7 @@ const privyConfig: PrivyClientConfig = {
     showWalletUIs: false,
   },
   loginMethods: ["email", "google", "sms"],
-  supportedChains: [celoMainnet, celoTestnet],
+  supportedChains: [celoMainnet],
 };
 
 export function Providers({ children }: ProvidersProps) {
