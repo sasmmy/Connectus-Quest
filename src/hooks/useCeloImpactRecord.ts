@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createWalletClient, custom, type Address } from "viem";
 import {
@@ -17,6 +17,7 @@ type RegisterImpactRecordInput = {
 
 const friendlyError =
   "Não conseguimos registrar agora. Seu progresso continua salvo no app.";
+const walletConfirmationTimeoutMs = 5 * 60 * 1000;
 
 function toPositiveBigInt(value: number, fallback: number) {
   const normalizedValue = Number.isFinite(value)
@@ -26,15 +27,39 @@ function toPositiveBigInt(value: number, fallback: number) {
   return BigInt(normalizedValue);
 }
 
+async function withWalletTimeout<T>(operation: Promise<T>) {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("Wallet confirmation timed out"));
+        }, walletConfirmationTimeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+}
+
 export function useCeloImpactRecord() {
   const { authenticated, ready } = usePrivy();
   const { wallets } = useWallets();
+  const registeringRef = useRef(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [error, setError] = useState("");
 
   const registerImpactRecord = useCallback(
     async ({ missionTitle, xpReward, userLevel }: RegisterImpactRecordInput) => {
+      if (registeringRef.current) {
+        return "";
+      }
+
       setError("");
       setTxHash("");
 
@@ -52,30 +77,35 @@ export function useCeloImpactRecord() {
         return "";
       }
 
+      registeringRef.current = true;
       setIsRegistering(true);
 
       try {
-        await connectedAccount.switchChain(celoMainnet.id);
+        await withWalletTimeout(connectedAccount.switchChain(celoMainnet.id));
 
-        const provider = await connectedAccount.getEthereumProvider();
+        const provider = await withWalletTimeout(
+          connectedAccount.getEthereumProvider(),
+        );
         const walletClient = createWalletClient({
           account: connectedAccount.address as Address,
           chain: celoMainnet,
           transport: custom(provider),
         });
 
-        const hash = await walletClient.writeContract({
-          account: connectedAccount.address as Address,
-          address: connectUSImpactRegistryAddress,
-          abi: connectUSImpactRegistryAbi,
-          args: [
-            missionTitle,
-            toPositiveBigInt(xpReward, 0),
-            toPositiveBigInt(userLevel, 1),
-          ],
-          chain: celoMainnet,
-          functionName: "registerImpact",
-        });
+        const hash = await withWalletTimeout(
+          walletClient.writeContract({
+            account: connectedAccount.address as Address,
+            address: connectUSImpactRegistryAddress,
+            abi: connectUSImpactRegistryAbi,
+            args: [
+              missionTitle,
+              toPositiveBigInt(xpReward, 0),
+              toPositiveBigInt(userLevel, 1),
+            ],
+            chain: celoMainnet,
+            functionName: "registerImpact",
+          }),
+        );
 
         setTxHash(hash);
         saveLastCeloRecordTx(hash);
@@ -85,6 +115,7 @@ export function useCeloImpactRecord() {
         setError(friendlyError);
         return "";
       } finally {
+        registeringRef.current = false;
         setIsRegistering(false);
       }
     },
