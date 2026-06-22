@@ -55,7 +55,7 @@ export function SecureRecordsSummary() {
           </p>
         </div>
         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#22D3EE]/12 text-[#B8F3FF]">
-          ✓
+          OK
         </span>
       </div>
 
@@ -108,13 +108,13 @@ function ConnectedSecureImpactRecord({
     return (
       <div className="rounded-3xl border border-[#35D07F]/16 bg-[#35D07F]/[0.06] p-4">
         <p className="text-sm font-black text-white">
-          Salve sua conquista com segurança
+          Registrar conquista segura
         </p>
         <p className="mt-1 text-xs font-medium leading-5 text-[#A7A8C8]">
-          Entre para preparar sua jornada para recompensas futuras.
+          Entre para guardar essa conquista com mais segurança.
         </p>
         <Button className="mt-3 min-h-9 px-4 text-xs" onClick={() => login()}>
-          Entrar e salvar
+          Entrar e registrar
         </Button>
       </div>
     );
@@ -139,7 +139,7 @@ function ConnectedSecureImpactRecord({
         {txHash ? "Conquista registrada" : "Registrar conquista segura"}
       </p>
       <p className="mt-1 text-xs font-medium leading-5 text-[#A7A8C8]">
-        Essa missão pode gerar um registro simples com tecnologia Celo.
+        Sua missão concluída pode receber um registro seguro.
       </p>
 
       {txHash ? (
@@ -163,7 +163,7 @@ function ConnectedSecureImpactRecord({
             })
           }
         >
-          {isRegistering ? "Registrando..." : "Registrar agora"}
+          {isRegistering ? "Registrando..." : "Registrar conquista segura"}
         </Button>
       )}
 
@@ -180,10 +180,10 @@ function SecureImpactUnavailable() {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
       <p className="text-sm font-black text-white">
-        Salve sua conquista com segurança
+        Registrar conquista segura
       </p>
       <p className="mt-1 text-xs font-medium leading-5 text-[#A7A8C8]">
-        Entrada segura ainda não configurada neste ambiente. Seu progresso
+        Esse registro ainda não está configurado neste ambiente. Seu progresso
         continua salvo no app.
       </p>
     </div>

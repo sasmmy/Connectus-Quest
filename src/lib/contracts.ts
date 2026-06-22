@@ -1,5 +1,17 @@
-export const connectUSImpactRegistryAddress =
-  process.env.NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS ?? "";
+import { isAddress, type Address } from "viem";
+
+export const fallbackConnectUSImpactRegistryAddress =
+  "0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c";
+
+const configuredConnectUSImpactRegistryAddress =
+  process.env.NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS?.trim();
+
+export const connectUSImpactRegistryAddress = (
+  configuredConnectUSImpactRegistryAddress &&
+  isAddress(configuredConnectUSImpactRegistryAddress)
+    ? configuredConnectUSImpactRegistryAddress
+    : fallbackConnectUSImpactRegistryAddress
+) as Address;
 
 export const connectUSImpactRegistryAbi = [
   {

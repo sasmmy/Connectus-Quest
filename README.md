@@ -19,7 +19,7 @@ Muitas ações positivas em comunidades, educação e impacto social passam desp
 - Perfil com jornada, conquistas e conta segura.
 - Persistência local com `localStorage`.
 - Login social opcional com Privy.
-- Preparação para Celo como infraestrutura discreta.
+- Registro seguro de conquistas no contrato `ConnectUSImpactRegistry` na Celo Mainnet.
 
 ## Stack
 
@@ -43,6 +43,7 @@ Crie um arquivo `.env.local` na raiz do projeto com:
 
 ```bash
 NEXT_PUBLIC_PRIVY_APP_ID=SEU_APP_ID_PRIVY
+NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS=0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c
 ```
 
 Rode o app:
@@ -53,7 +54,7 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
-O app continua navegável sem login. Com o App ID configurado, o usuário pode entrar com uma conta social para salvar sua jornada.
+O app continua navegável sem login. Com o App ID configurado, o usuário pode entrar com uma conta social para salvar sua jornada e registrar conquistas seguras.
 
 ## Scripts
 
@@ -69,26 +70,31 @@ npm run start
 | Variável | Descrição |
 | --- | --- |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | App ID público do Privy usado para entrada social opcional. |
+| `NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS` | Endereço público do contrato `ConnectUSImpactRegistry` na Celo Mainnet. Se não for definido, o frontend usa `0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c`. |
 
 ## Integração Celo
 
 - O app usa Privy para login social opcional.
 - O usuário pode usar o app sem login.
 - A Celo aparece como infraestrutura segura nos bastidores.
-- O MVP permite registrar uma conquista na Celo Sepolia para gerar um registro demonstrável.
-- Não há smart contracts nesta etapa.
+- O frontend pode registrar conquistas no contrato `ConnectUSImpactRegistry` na Celo Mainnet.
+- A função chamada pelo app é `registerImpact(string missionTitle, uint256 xpReward, uint256 userLevel)`.
+- O último registro seguro fica salvo no `localStorage` em `connectus_last_celo_record_tx`.
 - Não há token próprio nesta etapa.
 - Não há pagamento nesta etapa.
 
-Para testar o registro seguro, a conta usada no ambiente de teste precisa ter CELO de teste na Celo Sepolia. Use o faucet oficial em `https://faucet.celo.org/`.
+Para testar o registro seguro em produção, a conta usada precisa estar na Celo Mainnet e ter saldo suficiente para a taxa da rede.
 
 ## Smart Contract
 
 O contrato `ConnectUSImpactRegistry` registra impactos e conquistas como uma camada inicial de prova de impacto na Celo. Ele não é token, não guarda dinheiro, não faz pagamento e não implementa marketplace.
 
-Para a submissão no Talent, o deploy final deve ser feito na Celo Mainnet.
+Contrato na Celo Mainnet:
 
-Passos:
+- Endereço: `0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c`
+- Explorer: `https://celoscan.io/address/0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c`
+
+O deploy final já foi feito para a submissão no Talent. Os passos abaixo servem apenas para uma futura republicação controlada.
 
 1. Criar `.env.local` na raiz do projeto.
 2. Adicionar `PRIVATE_KEY` da conta de deploy.
@@ -117,9 +123,10 @@ Pronto para demonstração e deploy inicial. O produto já comunica impacto soci
 
 1. Conectar o repositório na Vercel.
 2. Configurar `NEXT_PUBLIC_PRIVY_APP_ID` nas variáveis de ambiente.
-3. Rodar o build.
-4. Publicar.
-5. Copiar a URL final para `SUBMISSION.md`.
+3. Configurar `NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS`, ou usar o fallback do frontend.
+4. Rodar o build.
+5. Publicar.
+6. Copiar a URL final para `SUBMISSION.md`.
 
 ## Observação de produto
 
