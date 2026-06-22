@@ -56,6 +56,19 @@ Celo funciona como infraestrutura segura e invisível para preparar identidade, 
 - Celo
 - LocalStorage no MVP
 
+## Celo Integration
+
+- Login social opcional com Privy.
+- Conta criada nos bastidores quando aplicável.
+- Celo Sepolia usada para registro demonstrável de conquista.
+- Hash de transação disponível após registro.
+- Experiência principal permanece simples e sem termos técnicos.
+- Sem smart contracts, token próprio, pagamentos ou backend nesta etapa.
+
+## Celo Test Transaction
+
+- Explorer link:
+
 ## 9. Como rodar
 
 ```bash

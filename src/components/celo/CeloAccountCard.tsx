@@ -2,6 +2,7 @@
 
 import { useLogin, usePrivy, useWallets, type User } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/Button";
+import { getCeloExplorerAddressUrl, shortenAddress } from "@/lib/celo";
 
 type LoginActionProps = {
   className?: string;
@@ -126,7 +127,7 @@ function ConnectedCeloAccountCard() {
       {address ? (
         <a
           className="mt-4 inline-flex rounded-full border border-[#22D3EE]/25 bg-[#22D3EE]/10 px-3 py-2 text-xs font-extrabold text-[#B8F3FF] transition hover:border-[#22D3EE]/45 hover:bg-[#22D3EE]/15"
-          href={`https://celoscan.io/address/${address}`}
+          href={getCeloExplorerAddressUrl(address)}
           rel="noreferrer"
           target="_blank"
         >
@@ -247,12 +248,4 @@ function getEntryMethod(user: User | null) {
   }
 
   return "Conta";
-}
-
-function shortenAddress(address: string) {
-  if (address.length <= 12) {
-    return address;
-  }
-
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }

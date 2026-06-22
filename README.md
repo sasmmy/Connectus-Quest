@@ -70,6 +70,18 @@ npm run start
 | --- | --- |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | App ID público do Privy usado para entrada social opcional. |
 
+## Integração Celo
+
+- O app usa Privy para login social opcional.
+- O usuário pode usar o app sem login.
+- A Celo aparece como infraestrutura segura nos bastidores.
+- O MVP permite registrar uma conquista na Celo Sepolia para gerar um registro demonstrável.
+- Não há smart contracts nesta etapa.
+- Não há token próprio nesta etapa.
+- Não há pagamento nesta etapa.
+
+Para testar o registro seguro, a conta usada no ambiente de teste precisa ter CELO de teste na Celo Sepolia. Use o faucet oficial em `https://faucet.celo.org/`.
+
 ## Status do MVP
 
 Pronto para demonstração e deploy inicial. O produto já comunica impacto social, progresso pessoal e comunidade, mantendo a complexidade técnica invisível para o usuário final.

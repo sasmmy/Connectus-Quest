@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { AvatarMark } from "@/components/avatar/AvatarMark";
 import { CeloAccountCard, CeloLoginChip } from "@/components/celo/CeloAccountCard";
+import {
+  SecureImpactRecord,
+  SecureRecordsSummary,
+} from "@/components/celo/SecureImpactRecord";
 import { BottomNav, type BottomNavItem } from "@/components/layout/BottomNav";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { QuestCard } from "@/components/quest/QuestCard";
@@ -15,6 +19,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { mockBadges, mockQuests } from "@/data/mockQuests";
 import { mockRanking } from "@/data/mockRanking";
 import { mockUser } from "@/data/mockUser";
+import { useConnectUSIdentity } from "@/hooks/useConnectUSIdentity";
 import { useConnectUSQuest } from "@/hooks/useConnectUSQuest";
 import { formatXp } from "@/lib/formatters";
 import type { Quest, QuestCategory } from "@/types/quest";
@@ -141,6 +146,7 @@ export function ConnectUSQuestApp({
     unlockedBadges,
     user,
   } = questState;
+  const identity = useConnectUSIdentity();
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
   const onboardingCompleted = useSyncExternalStore(
@@ -159,10 +165,19 @@ export function ConnectUSQuestApp({
     return () => window.clearTimeout(timer);
   }, [message, setMessage]);
 
-  const firstName = profile.name.split(" ")[0] || profile.name;
+  const displayProfile = {
+    ...profile,
+    handle: identity.displayHandle,
+    name: identity.displayName,
+  };
+  const firstName = identity.displayName.split(" ")[0] || identity.displayName;
   const completedCount = completedQuestIds.length;
   const currentRank =
     ranking.findIndex((entry) => entry.id === currentRankingUser.id) + 1;
+  const displayRankingUser = {
+    ...currentRankingUser,
+    name: identity.displayName,
+  };
   const dailyQuest =
     quests.find((quest) => quest.id === "share-opportunity") ?? quests[0];
   const xpInsideLevel = levelProgress.xpInsideLevel;
@@ -250,7 +265,7 @@ export function ConnectUSQuestApp({
               nextLevel={levelProgress.nextLevel}
               nextMilestoneMissions={nextMilestoneMissions}
               onCompleteQuest={completeQuest}
-              profile={profile}
+              profile={displayProfile}
               summaryStats={summaryStats}
               xpGoal={xpGoal}
               xpInsideLevel={xpInsideLevel}
@@ -264,12 +279,13 @@ export function ConnectUSQuestApp({
               isQuestLocked={isQuestLocked}
               onCompleteQuest={completeQuest}
               quests={quests}
+              userLevel={levelProgress.currentLevel}
             />
           ) : null}
 
           {activeScreen === "ranking" ? (
             <RankingScreen
-              currentRankingUser={currentRankingUser}
+              currentRankingUser={displayRankingUser}
               currentRank={currentRank}
               entries={mockRanking}
               totalXp={totalXp}
@@ -284,11 +300,13 @@ export function ConnectUSQuestApp({
               currentRank={currentRank}
               impactStats={impactStats}
               isBadgeUnlocked={isBadgeUnlocked}
+              isAuthenticated={identity.isAuthenticated}
               journeyTitle={journeyTitle}
               levelProgressPercent={levelProgress.progressPercent}
               nextMilestoneMissions={nextMilestoneMissions}
+              onLogout={identity.logout}
               onResetProgress={resetProgress}
-              profile={profile}
+              profile={displayProfile}
               questsCount={quests.length}
               streakDays={user.streakDays}
               totalXp={totalXp}
@@ -425,6 +443,7 @@ function HomeScreen({
 
       <DailyQuestCard
         completed={isDailyQuestCompleted}
+        currentLevel={currentLevel}
         locked={isDailyQuestLocked}
         onComplete={onCompleteQuest}
         quest={dailyQuest}
@@ -459,11 +478,13 @@ function HomeScreen({
 
 function DailyQuestCard({
   completed,
+  currentLevel,
   locked,
   onComplete,
   quest,
 }: {
   completed: boolean;
+  currentLevel: number;
   locked: boolean;
   onComplete: (questId: string) => void;
   quest: Quest;
@@ -497,6 +518,15 @@ function DailyQuestCard({
           {completed ? "Concluída" : "Concluir missão"}
         </Button>
       </div>
+      {completed ? (
+        <div className="mt-4">
+          <SecureImpactRecord
+            missionTitle={quest.title}
+            userLevel={currentLevel}
+            xpReward={quest.xp}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -539,11 +569,13 @@ function QuestsScreen({
   isQuestLocked,
   onCompleteQuest,
   quests,
+  userLevel,
 }: {
   completedQuestIds: string[];
   isQuestLocked: (quest: Quest) => boolean;
   onCompleteQuest: (questId: string) => void;
   quests: Quest[];
+  userLevel: number;
 }) {
   const [activeFilter, setActiveFilter] = useState<QuestFilter>("all");
   const filteredQuests = quests.filter((quest) =>
@@ -586,6 +618,7 @@ function QuestsScreen({
             locked={isQuestLocked(quest)}
             onComplete={onCompleteQuest}
             quest={quest}
+            userLevel={userLevel}
           />
         ))}
       </div>
@@ -636,9 +669,11 @@ function ProfileScreen({
   currentRank,
   impactStats,
   isBadgeUnlocked,
+  isAuthenticated,
   journeyTitle,
   levelProgressPercent,
   nextMilestoneMissions,
+  onLogout,
   onResetProgress,
   profile,
   questsCount,
@@ -654,9 +689,11 @@ function ProfileScreen({
   currentRank: number;
   impactStats: ImpactStats;
   isBadgeUnlocked: (badge: (typeof mockBadges)[number]) => boolean;
+  isAuthenticated: boolean;
   journeyTitle: string;
   levelProgressPercent: number;
   nextMilestoneMissions: number;
+  onLogout: () => void;
   onResetProgress: () => void;
   profile: { avatarId: string; handle: string; name: string };
   questsCount: number;
@@ -800,6 +837,14 @@ function ProfileScreen({
         />
         <CeloAccountCard />
       </section>
+
+      <SecureRecordsSummary />
+
+      {isAuthenticated ? (
+        <Button className="w-full" onClick={onLogout} variant="ghost">
+          Sair da conta
+        </Button>
+      ) : null}
 
       <Button className="w-full" onClick={onResetProgress} variant="secondary">
         Recomeçar progresso

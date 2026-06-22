@@ -1,11 +1,13 @@
 import type { Quest } from "@/types/quest";
 import { Button } from "@/components/ui/Button";
+import { SecureImpactRecord } from "@/components/celo/SecureImpactRecord";
 
 type QuestCardProps = {
   quest: Quest;
   completed: boolean;
   locked?: boolean;
   onComplete: (questId: string) => void;
+  userLevel: number;
 };
 
 const categoryLabels: Record<Quest["category"], string> = {
@@ -20,6 +22,7 @@ export function QuestCard({
   completed,
   locked = false,
   onComplete,
+  userLevel,
 }: QuestCardProps) {
   const disabled = completed || locked;
 
@@ -77,6 +80,16 @@ export function QuestCard({
           {completed ? "Concluída" : locked ? "Em breve" : "Concluir"}
         </Button>
       </div>
+
+      {completed ? (
+        <div className="mt-4">
+          <SecureImpactRecord
+            missionTitle={quest.title}
+            userLevel={userLevel}
+            xpReward={quest.xp}
+          />
+        </div>
+      ) : null}
     </article>
   );
 }

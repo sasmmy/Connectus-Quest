@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CeloLoginAction } from "@/components/celo/CeloAccountCard";
+import { saveOnboardingChoices } from "@/hooks/useConnectUSIdentity";
 import { Button } from "@/components/ui/Button";
 
 type OnboardingFlowProps = {
@@ -71,6 +72,21 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setStep((currentStep) => currentStep + 1);
   }
 
+  function completeFlow() {
+    saveOnboardingChoices(identity, goal);
+    onComplete();
+  }
+
+  function selectIdentity(nextIdentity: string) {
+    setIdentity(nextIdentity);
+    saveOnboardingChoices(nextIdentity, goal);
+  }
+
+  function selectGoal(nextGoal: string) {
+    setGoal(nextGoal);
+    saveOnboardingChoices(identity, nextGoal);
+  }
+
   function previousStep() {
     setStep((currentStep) => Math.max(0, currentStep - 1));
   }
@@ -89,7 +105,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </div>
           <button
             className="rounded-full px-3 py-2 text-sm font-semibold text-[#A7A8C8] transition hover:bg-white/[0.06] hover:text-white"
-            onClick={onComplete}
+            onClick={completeFlow}
             type="button"
           >
             Pular por enquanto
@@ -108,11 +124,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           {step === 1 ? (
             <IdentityStep
               identity={identity}
-              onSelectIdentity={setIdentity}
+              onSelectIdentity={selectIdentity}
             />
           ) : null}
           {step === 2 ? (
-            <GoalStep goal={goal} onSelectGoal={setGoal} />
+            <GoalStep goal={goal} onSelectGoal={selectGoal} />
           ) : null}
           {step === 3 ? <MissionUnlockedStep /> : null}
         </main>
@@ -124,9 +140,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 className="w-full"
                 fallbackToComplete
                 label="Entrar e salvar minha jornada"
-                onComplete={onComplete}
+                onComplete={completeFlow}
               />
-              <Button className="w-full" onClick={onComplete} variant="secondary">
+              <Button className="w-full" onClick={completeFlow} variant="secondary">
                 Continuar sem entrar
               </Button>
             </>
