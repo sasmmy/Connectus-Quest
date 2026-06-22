@@ -233,7 +233,7 @@ export function useConnectUSQuest({
     const nextQuestIds = [...completedQuestIds, questId];
     saveCompletedQuestIds(nextQuestIds);
     emitStorageChange();
-    setMessage(`Você ganhou +${formatXp(quest.xp)} XP`);
+    setMessage(`+${formatXp(quest.xp)} XP. Cada ação fortalece sua comunidade.`);
   }
 
   function updateProfile(nextProfile: Partial<ProfileState>) {

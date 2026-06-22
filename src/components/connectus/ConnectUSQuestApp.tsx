@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import { AvatarMark } from "@/components/avatar/AvatarMark";
 import { BottomNav, type BottomNavItem } from "@/components/layout/BottomNav";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { QuestCard } from "@/components/quest/QuestCard";
 import { QuestProgress } from "@/components/quest/QuestProgress";
 import { RewardBadge } from "@/components/quest/RewardBadge";
@@ -24,6 +26,35 @@ type ConnectUSQuestAppProps = {
   initialScreen?: ActiveScreen;
 };
 
+const onboardingStorageKey = "onboarding_completed";
+const onboardingStorageEvent = "connectus-onboarding-change";
+
+function subscribeToOnboardingStorage(onStoreChange: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(onboardingStorageEvent, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(onboardingStorageEvent, onStoreChange);
+  };
+}
+
+function getOnboardingSnapshot() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(onboardingStorageKey) === "true";
+}
+
+function getServerOnboardingSnapshot() {
+  return false;
+}
+
 const navItems: BottomNavItem[] = [
   { icon: "home", id: "home", label: "Início" },
   { icon: "quests", id: "quests", label: "Missões" },
@@ -38,9 +69,51 @@ const questFilters: Array<{ id: QuestFilter; label: string }> = [
   { id: "learn", label: "Aprender" },
 ];
 
+type ImpactStats = {
+  communityActions: number;
+  completedMissions: number;
+  sharedOpportunities: number;
+};
+
+function getJourneyTitle(level: number) {
+  if (level >= 6) {
+    return "Líder Comunitária";
+  }
+
+  if (level >= 5) {
+    return "Agente de Impacto";
+  }
+
+  if (level >= 4) {
+    return "Conectora";
+  }
+
+  return "Exploradora";
+}
+
+function getMissionsToNextMilestone(completedCount: number) {
+  const milestones = [1, 3, 5, 8, 12];
+  const nextMilestone = milestones.find((milestone) => milestone > completedCount);
+
+  return Math.max((nextMilestone ?? completedCount + 3) - completedCount, 1);
+}
+
+function getImpactStats(completedQuests: Quest[]): ImpactStats {
+  return {
+    communityActions: completedQuests.filter((quest) =>
+      ["community", "impact"].includes(quest.category),
+    ).length,
+    completedMissions: completedQuests.length,
+    sharedOpportunities: completedQuests.filter(
+      (quest) => quest.id === "share-opportunity",
+    ).length,
+  };
+}
+
 export function ConnectUSQuestApp({
   initialScreen = "home",
 }: ConnectUSQuestAppProps) {
+  const router = useRouter();
   const questState = useConnectUSQuest({
     badges: mockBadges,
     quests: mockQuests,
@@ -50,6 +123,7 @@ export function ConnectUSQuestApp({
   const {
     badges,
     completedQuestIds,
+    completedQuests,
     completeQuest,
     currentRankingUser,
     isBadgeUnlocked,
@@ -68,6 +142,11 @@ export function ConnectUSQuestApp({
   } = questState;
 
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
+  const onboardingCompleted = useSyncExternalStore(
+    subscribeToOnboardingStorage,
+    getOnboardingSnapshot,
+    getServerOnboardingSnapshot,
+  );
 
   useEffect(() => {
     if (!message) {
@@ -87,6 +166,12 @@ export function ConnectUSQuestApp({
     quests.find((quest) => quest.id === "share-opportunity") ?? quests[0];
   const xpInsideLevel = levelProgress.xpInsideLevel;
   const xpGoal = xpInsideLevel + levelProgress.xpToNextLevel;
+  const journeyTitle = getJourneyTitle(levelProgress.currentLevel);
+  const nextMilestoneMissions = getMissionsToNextMilestone(completedCount);
+  const impactStats = useMemo(
+    () => getImpactStats(completedQuests),
+    [completedQuests],
+  );
 
   const summaryStats = useMemo(
     () => [
@@ -119,8 +204,22 @@ export function ConnectUSQuestApp({
     });
   }
 
+  function completeOnboarding() {
+    window.localStorage.setItem(onboardingStorageKey, "true");
+    window.dispatchEvent(new Event(onboardingStorageEvent));
+    setActiveScreen("home");
+
+    if (window.location.pathname !== "/") {
+      router.push("/");
+    }
+  }
+
   if (!storageReady) {
     return <LoadingShell />;
+  }
+
+  if (!onboardingCompleted) {
+    return <OnboardingFlow onComplete={completeOnboarding} />;
   }
 
   return (
@@ -142,10 +241,13 @@ export function ConnectUSQuestApp({
               currentLevel={levelProgress.currentLevel}
               dailyQuest={dailyQuest}
               firstName={firstName}
+              impactStats={impactStats}
               isDailyQuestCompleted={completedQuestIds.includes(dailyQuest.id)}
               isDailyQuestLocked={isQuestLocked(dailyQuest)}
+              journeyTitle={journeyTitle}
               levelProgressPercent={levelProgress.progressPercent}
               nextLevel={levelProgress.nextLevel}
+              nextMilestoneMissions={nextMilestoneMissions}
               onCompleteQuest={completeQuest}
               profile={profile}
               summaryStats={summaryStats}
@@ -179,8 +281,11 @@ export function ConnectUSQuestApp({
               completedCount={completedCount}
               currentLevel={levelProgress.currentLevel}
               currentRank={currentRank}
+              impactStats={impactStats}
               isBadgeUnlocked={isBadgeUnlocked}
+              journeyTitle={journeyTitle}
               levelProgressPercent={levelProgress.progressPercent}
+              nextMilestoneMissions={nextMilestoneMissions}
               onResetProgress={resetProgress}
               profile={profile}
               questsCount={quests.length}
@@ -233,10 +338,13 @@ function HomeScreen({
   currentLevel,
   dailyQuest,
   firstName,
+  impactStats,
   isDailyQuestCompleted,
   isDailyQuestLocked,
+  journeyTitle,
   levelProgressPercent,
   nextLevel,
+  nextMilestoneMissions,
   onCompleteQuest,
   profile,
   summaryStats,
@@ -248,10 +356,13 @@ function HomeScreen({
   currentLevel: number;
   dailyQuest: Quest;
   firstName: string;
+  impactStats: ImpactStats;
   isDailyQuestCompleted: boolean;
   isDailyQuestLocked: boolean;
+  journeyTitle: string;
   levelProgressPercent: number;
   nextLevel: number;
+  nextMilestoneMissions: number;
   onCompleteQuest: (questId: string) => void;
   profile: { avatarId: string; handle: string; name: string };
   summaryStats: Array<{
@@ -273,7 +384,7 @@ function HomeScreen({
               Oi, {firstName} 👋
             </h1>
             <p className="mt-2 max-w-[15rem] text-sm font-medium leading-5 text-[#A7A8C8]">
-              Sua jornada de impacto começa com uma missão.
+              Você está evoluindo como {journeyTitle}.
             </p>
           </div>
           <AvatarMark avatarId={profile.avatarId} label={profile.name} size="md" />
@@ -283,10 +394,15 @@ function HomeScreen({
       <section className="rounded-[1.75rem] border border-[#35D07F]/20 bg-[#0F1A20] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#BDF7D6]">Nível {currentLevel}</p>
+            <p className="text-sm font-semibold text-[#BDF7D6]">
+              {journeyTitle}
+            </p>
             <h2 className="mt-1 text-3xl font-black text-white">
-              {formatXp(xpInsideLevel)} / {formatXp(xpGoal)} XP
+              Nível {currentLevel}
             </h2>
+            <p className="mt-1 text-sm font-medium text-[#A7A8C8]">
+              {formatXp(xpInsideLevel)} / {formatXp(xpGoal)} XP
+            </p>
           </div>
           <div className="rounded-full bg-[#FBCC5C]/12 px-3 py-1.5 text-sm font-extrabold text-[#FFE7A3]">
             ⚡
@@ -298,6 +414,9 @@ function HomeScreen({
         <p className="mt-3 text-xs font-medium text-[#A7A8C8]">
           Faltam {formatXp(xpToNextLevel)} XP para o nível {nextLevel}.
         </p>
+        <p className="mt-1 text-xs font-medium text-[#8F96B3]">
+          Faltam {nextMilestoneMissions} missões para alcançar o próximo marco.
+        </p>
       </section>
 
       <DailyQuestCard
@@ -306,6 +425,8 @@ function HomeScreen({
         onComplete={onCompleteQuest}
         quest={dailyQuest}
       />
+
+      <ImpactSection impactStats={impactStats} />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -371,6 +492,39 @@ function DailyQuestCard({
         >
           {completed ? "Concluída" : "Concluir missão"}
         </Button>
+      </div>
+    </section>
+  );
+}
+
+function ImpactSection({ impactStats }: { impactStats: ImpactStats }) {
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-black text-white">Seu Impacto</h2>
+        <p className="mt-1 text-sm font-medium text-[#8F96B3]">
+          Cada ação fortalece sua comunidade.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2.5">
+        <StatCard
+          detail="missões"
+          label="Feitas"
+          tone="green"
+          value={`${impactStats.completedMissions}`}
+        />
+        <StatCard
+          detail="oportunidades"
+          label="Compart."
+          tone="gold"
+          value={`${impactStats.sharedOpportunities}`}
+        />
+        <StatCard
+          detail="ações"
+          label="Comunidade"
+          tone="blue"
+          value={`${impactStats.communityActions}`}
+        />
       </div>
     </section>
   );
@@ -476,8 +630,11 @@ function ProfileScreen({
   completedCount,
   currentLevel,
   currentRank,
+  impactStats,
   isBadgeUnlocked,
+  journeyTitle,
   levelProgressPercent,
+  nextMilestoneMissions,
   onResetProgress,
   profile,
   questsCount,
@@ -491,8 +648,11 @@ function ProfileScreen({
   completedCount: number;
   currentLevel: number;
   currentRank: number;
+  impactStats: ImpactStats;
   isBadgeUnlocked: (badge: (typeof mockBadges)[number]) => boolean;
+  journeyTitle: string;
   levelProgressPercent: number;
+  nextMilestoneMissions: number;
   onResetProgress: () => void;
   profile: { avatarId: string; handle: string; name: string };
   questsCount: number;
@@ -510,7 +670,7 @@ function ProfileScreen({
         </div>
         <h1 className="mt-4 text-3xl font-black text-white">{profile.name}</h1>
         <p className="mt-1 text-sm font-medium text-[#A7A8C8]">
-          {profile.handle}
+          {profile.handle} · {journeyTitle}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-3 text-left">
           <StatCard
@@ -530,6 +690,43 @@ function ProfileScreen({
           <QuestProgress
             label={`${formatXp(xpInsideLevel)} / ${formatXp(xpGoal)} XP`}
             value={levelProgressPercent}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-white/10 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+        <SectionTitle
+          subtitle={`Você está evoluindo como ${journeyTitle}.`}
+          title="Minha Jornada"
+        />
+        <div className="mt-4 rounded-3xl bg-white/[0.04] p-4">
+          <p className="text-sm font-semibold leading-6 text-white">
+            Faltam {nextMilestoneMissions} missões para alcançar o próximo
+            marco.
+          </p>
+          <p className="mt-1 text-xs font-medium leading-5 text-[#8F96B3]">
+            Cada ação registrada ajuda a mostrar sua evolução e o impacto que
+            você está construindo.
+          </p>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          <StatCard
+            detail="missões"
+            label="Feitas"
+            tone="green"
+            value={`${impactStats.completedMissions}`}
+          />
+          <StatCard
+            detail="oportunidades"
+            label="Compart."
+            tone="gold"
+            value={`${impactStats.sharedOpportunities}`}
+          />
+          <StatCard
+            detail="ações"
+            label="Comunidade"
+            tone="blue"
+            value={`${impactStats.communityActions}`}
           />
         </div>
       </section>
