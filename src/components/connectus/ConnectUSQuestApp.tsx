@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { AvatarMark } from "@/components/avatar/AvatarMark";
+import { CeloAccountCard, CeloLoginChip } from "@/components/celo/CeloAccountCard";
 import { BottomNav, type BottomNavItem } from "@/components/layout/BottomNav";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { QuestCard } from "@/components/quest/QuestCard";
@@ -321,13 +322,16 @@ function AppHeader() {
             powered by Celo
           </p>
         </div>
-        <button
-          aria-label="Notificações"
-          className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-[#A7A8C8] transition active:scale-95"
-          type="button"
-        >
-          <BellIcon />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <CeloLoginChip />
+          <button
+            aria-label="Notificações"
+            className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-[#A7A8C8] transition active:scale-95"
+            type="button"
+          >
+            <BellIcon />
+          </button>
+        </div>
       </div>
     </header>
   );
@@ -788,6 +792,14 @@ function ProfileScreen({
       <p className="rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-medium text-[#8F96B3]">
         Tecnologia Celo nos bastidores.
       </p>
+
+      <section className="space-y-3">
+        <SectionTitle
+          subtitle="Tecnologia Celo nos bastidores para preparar sua jornada para futuras recompensas."
+          title="Conta e segurança"
+        />
+        <CeloAccountCard />
+      </section>
 
       <Button className="w-full" onClick={onResetProgress} variant="secondary">
         Recomeçar progresso

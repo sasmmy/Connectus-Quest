@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CeloLoginAction } from "@/components/celo/CeloAccountCard";
 import { Button } from "@/components/ui/Button";
 
 type OnboardingFlowProps = {
@@ -67,11 +68,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const progress = ((step + 1) / 4) * 100;
 
   function nextStep() {
-    if (step === 3) {
-      onComplete();
-      return;
-    }
-
     setStep((currentStep) => currentStep + 1);
   }
 
@@ -122,10 +118,24 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </main>
 
         <footer className="grid gap-3">
-          <Button className="w-full" onClick={nextStep}>
-            {step === 3 ? "Ir para Home" : "Continuar"}
-          </Button>
-          {step > 0 ? (
+          {step === 3 ? (
+            <>
+              <CeloLoginAction
+                className="w-full"
+                fallbackToComplete
+                label="Entrar e salvar minha jornada"
+                onComplete={onComplete}
+              />
+              <Button className="w-full" onClick={onComplete} variant="secondary">
+                Continuar sem entrar
+              </Button>
+            </>
+          ) : (
+            <Button className="w-full" onClick={nextStep}>
+              Continuar
+            </Button>
+          )}
+          {step > 0 && step < 3 ? (
             <Button className="w-full" onClick={previousStep} variant="ghost">
               Voltar
             </Button>
