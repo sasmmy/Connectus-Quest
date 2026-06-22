@@ -26,14 +26,14 @@ export function BottomNav({
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-2"
+      className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2"
     >
-      <div className="grid grid-cols-4 gap-1.5 rounded-[1.4rem] border border-white/10 bg-[#0B1020]/92 p-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+      <div className="grid grid-cols-4 gap-1.5 rounded-[1.4rem] border border-white/12 bg-[#0B1020]/94 p-1.5 shadow-[0_-12px_36px_rgba(0,0,0,0.38)] backdrop-blur-xl">
         {items.map((item) => {
           const active = item.id === activeId;
           const className = `flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-[1.05rem] px-1 text-center text-[11px] font-semibold transition duration-200 ${
             active
-              ? "bg-[#35D07F]/14 text-white"
+              ? "bg-[#35D07F]/16 text-white shadow-[inset_0_0_0_1px_rgba(53,208,127,0.18)]"
               : "text-[#8F96B3] hover:bg-white/[0.05] hover:text-white"
           }`;
 

@@ -28,18 +28,19 @@ export function QuestCard({
 
   return (
     <article
-      className={`rounded-3xl border p-4 shadow-[0_14px_36px_rgba(0,0,0,0.2)] transition duration-200 ${
+      className={`relative overflow-hidden rounded-[1.75rem] border p-4 shadow-[0_16px_40px_rgba(0,0,0,0.24)] transition duration-200 ${
         completed
-          ? "border-[#35D07F]/35 bg-[#35D07F]/[0.08]"
-          : "border-white/10 bg-[#101523]/88 hover:border-[#35D07F]/28"
+          ? "border-[#35D07F]/42 bg-[linear-gradient(145deg,rgba(53,208,127,0.14),rgba(16,21,35,0.94))]"
+          : "border-white/10 bg-[linear-gradient(145deg,rgba(21,27,48,0.95),rgba(16,21,35,0.88))] hover:border-[#35D07F]/30"
       }`}
     >
+      <div className="pointer-events-none absolute -right-12 -top-12 size-24 rounded-full bg-[#22D3EE]/8 blur-2xl" />
       <div className="flex items-start gap-3">
         <div
           className={`grid size-11 shrink-0 place-items-center rounded-2xl text-lg ${
             completed
-              ? "bg-[#35D07F] text-[#06110C]"
-              : "bg-white/[0.07] text-[#BDF7D6]"
+              ? "bg-[#35D07F] text-[#06110C] shadow-[0_0_22px_rgba(53,208,127,0.22)]"
+              : "border border-white/10 bg-white/[0.07] text-[#BDF7D6]"
           }`}
         >
           {completed ? "✓" : quest.signal}
@@ -53,10 +54,10 @@ export function QuestCard({
               +{quest.xp} XP
             </span>
           </div>
-          <h3 className="mt-1.5 text-base font-extrabold leading-6 text-white">
+          <h3 className="mt-2 text-base font-black leading-6 text-white">
             {quest.title}
           </h3>
-          <p className="mt-1 text-sm font-medium leading-5 text-[#A7A8C8]">
+          <p className="mt-1 text-sm font-medium leading-5 text-[#B9BCD6]">
             {quest.description}
           </p>
         </div>

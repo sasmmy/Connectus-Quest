@@ -199,7 +199,8 @@ function CeloAccountFallback() {
 
 function AccountShell({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-[1.75rem] border border-[#35D07F]/16 bg-[#101523] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-[#35D07F]/20 bg-[linear-gradient(145deg,rgba(53,208,127,0.11),rgba(16,21,35,0.97))] p-5 shadow-[0_16px_42px_rgba(0,0,0,0.25)]">
+      <div className="pointer-events-none absolute -right-12 -top-12 size-28 rounded-full bg-[#35D07F]/10 blur-2xl" />
       {children}
     </section>
   );
@@ -207,7 +208,7 @@ function AccountShell({ children }: { children: React.ReactNode }) {
 
 function AccountDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.04] px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
       <span className="text-xs font-semibold text-[#8F96B3]">{label}</span>
       <span className="truncate text-sm font-extrabold text-white">{value}</span>
     </div>

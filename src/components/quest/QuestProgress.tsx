@@ -16,9 +16,9 @@ export function QuestProgress({ value, label }: QuestProgressProps) {
           <span className="font-bold text-[#BDF7D6]">{safeValue}%</span>
         </div>
       ) : null}
-      <div className="h-3 overflow-hidden rounded-full bg-white/[0.08]">
+      <div className="h-3.5 overflow-hidden rounded-full border border-white/[0.05] bg-black/25 shadow-inner shadow-black/25">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#35D07F] to-[#FBCC5C] shadow-[0_0_14px_rgba(53,208,127,0.24)] transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-[#35D07F] via-[#22D3EE] to-[#FBCC5C] shadow-[0_0_18px_rgba(53,208,127,0.26)] transition-all duration-500"
           style={{ width: `${safeValue}%` }}
         />
       </div>
