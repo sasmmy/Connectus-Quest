@@ -3,6 +3,7 @@
 import { useLogin, usePrivy, useWallets, type User } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/Button";
 import { getCeloExplorerAddressUrl, shortenAddress } from "@/lib/celo";
+import { isPrivyAppIdConfigured } from "@/lib/privy";
 
 type LoginActionProps = {
   className?: string;
@@ -12,7 +13,7 @@ type LoginActionProps = {
   variant?: "primary" | "secondary" | "ghost";
 };
 
-const hasPrivyAppId = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+const hasPrivyAppId = isPrivyAppIdConfigured();
 
 export function CeloAccountCard() {
   if (!hasPrivyAppId) {

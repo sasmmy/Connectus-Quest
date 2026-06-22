@@ -9,6 +9,7 @@ import {
   getLastCeloRecordTx,
   shortenAddress,
 } from "@/lib/celo";
+import { isPrivyAppIdConfigured } from "@/lib/privy";
 import { Button } from "@/components/ui/Button";
 
 type SecureImpactRecordProps = {
@@ -17,7 +18,7 @@ type SecureImpactRecordProps = {
   userLevel: number;
 };
 
-const hasPrivyAppId = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+const hasPrivyAppId = isPrivyAppIdConfigured();
 
 export function SecureImpactRecord(props: SecureImpactRecordProps) {
   if (!hasPrivyAppId) {

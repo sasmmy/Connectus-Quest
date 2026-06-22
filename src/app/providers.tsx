@@ -2,6 +2,7 @@
 
 import { PrivyProvider, type PrivyClientConfig } from "@privy-io/react-auth";
 import { celoMainnet } from "@/lib/celo";
+import { isPrivyAppIdConfigured } from "@/lib/privy";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -30,12 +31,14 @@ const privyConfig: PrivyClientConfig = {
 };
 
 export function Providers({ children }: ProvidersProps) {
-  if (!privyAppId) {
+  const configuredPrivyAppId = privyAppId?.trim() ?? "";
+
+  if (!isPrivyAppIdConfigured(configuredPrivyAppId)) {
     return <>{children}</>;
   }
 
   return (
-    <PrivyProvider appId={privyAppId} config={privyConfig}>
+    <PrivyProvider appId={configuredPrivyAppId} config={privyConfig}>
       {children}
     </PrivyProvider>
   );

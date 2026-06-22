@@ -2,12 +2,13 @@
 
 import { useMemo, useSyncExternalStore } from "react";
 import { useLogin, useLogout, usePrivy, useWallets } from "@privy-io/react-auth";
+import { isPrivyAppIdConfigured } from "@/lib/privy";
 
 export const onboardingIdentityStorageKey = "connectus_onboarding_identity";
 export const onboardingGoalStorageKey = "connectus_onboarding_goal";
 export const onboardingChoiceStorageEvent = "connectus-onboarding-choice-change";
 
-const hasPrivyAppId = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+const hasPrivyAppId = isPrivyAppIdConfigured();
 
 const identityLabels: Record<string, string> = {
   connector: "Conectora",
