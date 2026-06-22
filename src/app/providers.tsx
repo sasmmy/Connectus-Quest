@@ -23,7 +23,7 @@ const privyConfig: PrivyClientConfig = {
     ethereum: {
       createOnLogin: "users-without-wallets",
     },
-    showWalletUIs: false,
+    showWalletUIs: true,
   },
   loginMethods: ["email", "google", "sms"],
   supportedChains: [celoMainnet],
