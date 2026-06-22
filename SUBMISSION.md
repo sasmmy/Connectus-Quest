@@ -68,6 +68,13 @@ Celo funciona como infraestrutura segura e invisível para preparar identidade, 
 Celo Test Transaction:
 Explorer link: https://celo-sepolia.blockscout.com/tx/0x2f0b87949132f3f6477429d67cb67518a24400bb8f340ce852e215802229d1c2
 
+## Smart Contract
+
+Network: Celo Mainnet
+Contract name: ConnectUSImpactRegistry
+Contract address: 0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c
+Explorer link: https://celoscan.io/address/0xfB3a03DF68A5dc2ca5474C8198A96B3b5a8Ccb7c
+
 ## 9. Como rodar
 
 ```bash

@@ -82,6 +82,24 @@ npm run start
 
 Para testar o registro seguro, a conta usada no ambiente de teste precisa ter CELO de teste na Celo Sepolia. Use o faucet oficial em `https://faucet.celo.org/`.
 
+## Smart Contract
+
+O contrato `ConnectUSImpactRegistry` registra impactos e conquistas como uma camada inicial de prova de impacto na Celo. Ele não é token, não guarda dinheiro, não faz pagamento e não implementa marketplace.
+
+Para a submissão no Talent, o deploy final deve ser feito na Celo Mainnet.
+
+Passos:
+
+1. Criar `.env.local` na raiz do projeto.
+2. Adicionar `PRIVATE_KEY` da conta de deploy.
+3. Garantir saldo CELO na conta de deploy.
+4. Rodar `npm run compile:contracts`.
+5. Rodar `npm run deploy:celo`.
+6. Copiar o endereço gerado para `NEXT_PUBLIC_CONNECTUS_IMPACT_REGISTRY_ADDRESS`.
+7. Atualizar o `SUBMISSION.md` com endereço e link do explorer.
+
+Nunca commite `.env.local` ou qualquer chave privada real.
+
 ## Status do MVP
 
 Pronto para demonstração e deploy inicial. O produto já comunica impacto social, progresso pessoal e comunidade, mantendo a complexidade técnica invisível para o usuário final.
