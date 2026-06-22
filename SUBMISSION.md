@@ -65,9 +65,8 @@ Celo funciona como infraestrutura segura e invisível para preparar identidade, 
 - Experiência principal permanece simples e sem termos técnicos.
 - Sem smart contracts, token próprio, pagamentos ou backend nesta etapa.
 
-## Celo Test Transaction
-
-- Explorer link:
+Celo Test Transaction:
+Explorer link: https://celo-sepolia.blockscout.com/tx/0x2f0b87949132f3f6477429d67cb67518a24400bb8f340ce852e215802229d1c2
 
 ## 9. Como rodar
 
